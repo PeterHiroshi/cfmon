@@ -61,3 +61,39 @@ func TestListWorkers_Success(t *testing.T) {
 		t.Errorf("workers[0].Requests = %d, want 1000", workers[0].Requests)
 	}
 }
+
+func TestListWorkers_APIError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"success": false, "errors": [{"message": "Internal Server Error"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-token")
+	client.baseURL = server.URL
+
+	_, err := client.ListWorkers("test-account")
+	if err == nil {
+		t.Fatal("ListWorkers() with API error: error = nil, want error")
+	}
+}
+
+func TestListWorkers_EmptyResult(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"success": true, "result": []}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-token")
+	client.baseURL = server.URL
+
+	workers, err := client.ListWorkers("test-account")
+	if err != nil {
+		t.Fatalf("ListWorkers() error = %v, want nil", err)
+	}
+
+	if len(workers) != 0 {
+		t.Errorf("len(workers) = %d, want 0", len(workers))
+	}
+}

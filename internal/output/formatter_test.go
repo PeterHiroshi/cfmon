@@ -145,3 +145,161 @@ func TestFormatColoredTable_ColorMapping(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatJSON_Error(t *testing.T) {
+	// Test with un-marshalable data (channel)
+	ch := make(chan int)
+	defer close(ch)
+
+	_, err := FormatJSON(ch)
+	if err == nil {
+		t.Fatal("FormatJSON() with channel: error = nil, want error")
+	}
+}
+
+func TestFormatJSON_ErrorWithFunc(t *testing.T) {
+	// Test with function (also un-marshalable)
+	fn := func() {}
+
+	_, err := FormatJSON(fn)
+	if err == nil {
+		t.Fatal("FormatJSON() with function: error = nil, want error")
+	}
+}
+
+func TestFormatTable_NilHeaders(t *testing.T) {
+	rows := [][]string{
+		{"value1", "value2"},
+	}
+
+	result := FormatTable(nil, rows)
+
+	// Should return empty string with nil headers
+	if result != "" {
+		t.Errorf("FormatTable() with nil headers = %q, want empty string", result)
+	}
+}
+
+func TestFormatTable_EmptyHeaders(t *testing.T) {
+	headers := []string{}
+	rows := [][]string{
+		{"value1", "value2"},
+	}
+
+	result := FormatTable(headers, rows)
+
+	// Should return empty string with empty headers
+	if result != "" {
+		t.Errorf("FormatTable() with empty headers = %q, want empty string", result)
+	}
+}
+
+func TestFormatTable_MismatchedRowLengths(t *testing.T) {
+	headers := []string{"Col1", "Col2", "Col3"}
+	rows := [][]string{
+		{"A", "B", "C"},        // matches header count
+		{"X", "Y"},             // fewer columns
+		{"1", "2", "3", "4"},   // more columns
+	}
+
+	result := FormatTable(headers, rows)
+
+	// Should not crash and should contain all headers
+	if !strings.Contains(result, "Col1") {
+		t.Errorf("result missing Col1 header")
+	}
+	if !strings.Contains(result, "Col2") {
+		t.Errorf("result missing Col2 header")
+	}
+	if !strings.Contains(result, "Col3") {
+		t.Errorf("result missing Col3 header")
+	}
+
+	// Should contain data from rows
+	if !strings.Contains(result, "A") {
+		t.Errorf("result missing data from first row")
+	}
+	if !strings.Contains(result, "X") {
+		t.Errorf("result missing data from second row")
+	}
+}
+
+func TestFormatColoredTable_EmptyRows(t *testing.T) {
+	headers := []string{"Header1", "Header2"}
+	rows := [][]string{}
+
+	result := FormatColoredTable(headers, rows, true)
+
+	// Should show headers even with no rows
+	if !strings.Contains(result, "Header1") {
+		t.Errorf("result missing Header1")
+	}
+	if !strings.Contains(result, "Header2") {
+		t.Errorf("result missing Header2")
+	}
+
+	// Should contain separator line
+	if !strings.Contains(result, "-") {
+		t.Errorf("result missing separator line")
+	}
+}
+
+func TestFormatColoredTable_NilHeaders(t *testing.T) {
+	rows := [][]string{
+		{"value1", "value2"},
+	}
+
+	result := FormatColoredTable(nil, rows, true)
+
+	// Should return empty string with nil headers
+	if result != "" {
+		t.Errorf("FormatColoredTable() with nil headers = %q, want empty string", result)
+	}
+}
+
+func TestFormatColoredTable_MismatchedRowLengths(t *testing.T) {
+	headers := []string{"Col1", "Col2", "Col3"}
+	rows := [][]string{
+		{"A", "B", "C"},
+		{"X"},                // much shorter
+		{"1", "2", "3", "4", "5"},  // much longer
+	}
+
+	result := FormatColoredTable(headers, rows, false)
+
+	// Should not crash
+	if len(result) == 0 {
+		t.Error("result is empty, want non-empty")
+	}
+
+	// Should contain headers
+	if !strings.Contains(result, "Col1") {
+		t.Errorf("result missing Col1 header")
+	}
+}
+
+func TestColorizeCell_CaseInsensitive(t *testing.T) {
+	// Test that colorization is case-insensitive
+	tests := []struct {
+		input string
+		desc  string
+	}{
+		{"ACTIVE", "uppercase active"},
+		{"Active", "mixed case active"},
+		{"ERROR", "uppercase error"},
+		{"Error", "mixed case error"},
+		{"WARNING", "uppercase warning"},
+		{"Warning", "mixed case warning"},
+	}
+
+	headers := []string{"Status"}
+	for _, tt := range tests {
+		rows := [][]string{{tt.input}}
+		result := FormatColoredTable(headers, rows, true)
+
+		// Should contain the input (possibly with ANSI codes)
+		if !strings.Contains(result, tt.input) {
+			t.Errorf("result missing %s: %s", tt.desc, tt.input)
+		}
+	}
+}

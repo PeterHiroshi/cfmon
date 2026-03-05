@@ -93,3 +93,55 @@ func TestGetContainer_Success(t *testing.T) {
 		t.Errorf("Name = %q, want %q", container.Name, "test-container")
 	}
 }
+
+func TestListContainers_APIError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"success": false, "errors": [{"message": "Internal Server Error"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-token")
+	client.baseURL = server.URL
+
+	_, err := client.ListContainers("test-account")
+	if err == nil {
+		t.Fatal("ListContainers() with API error: error = nil, want error")
+	}
+}
+
+func TestListContainers_EmptyResult(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"success": true, "result": []}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-token")
+	client.baseURL = server.URL
+
+	containers, err := client.ListContainers("test-account")
+	if err != nil {
+		t.Fatalf("ListContainers() error = %v, want nil", err)
+	}
+
+	if len(containers) != 0 {
+		t.Errorf("len(containers) = %d, want 0", len(containers))
+	}
+}
+
+func TestGetContainer_APIError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"success": false, "errors": [{"message": "Container not found"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-token")
+	client.baseURL = server.URL
+
+	_, err := client.GetContainer("test-account", "nonexistent")
+	if err == nil {
+		t.Fatal("GetContainer() with API error: error = nil, want error")
+	}
+}

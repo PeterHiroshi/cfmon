@@ -65,3 +65,76 @@ func TestClient_DoRequest_Error(t *testing.T) {
 		t.Fatal("doRequest() error = nil, want error")
 	}
 }
+
+func TestClient_DoRequest_NilResult(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"success": true}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-token")
+	client.baseURL = server.URL
+
+	// Test with nil result - should not crash
+	err := client.doRequest("GET", "/test", nil)
+	if err != nil {
+		t.Fatalf("doRequest() with nil result error = %v, want nil", err)
+	}
+}
+
+func TestClient_DoRequest_InvalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{invalid json}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-token")
+	client.baseURL = server.URL
+
+	var result map[string]interface{}
+	err := client.doRequest("GET", "/test", &result)
+	if err == nil {
+		t.Fatal("doRequest() with invalid JSON error = nil, want error")
+	}
+
+	// Should mention parsing
+	if err != nil && err.Error() == "" {
+		t.Error("error message is empty")
+	}
+}
+
+func TestClient_DoRequest_ConnectionError(t *testing.T) {
+	client := NewClient("test-token")
+	// Use an unreachable URL
+	client.baseURL = "http://localhost:1"
+
+	var result map[string]interface{}
+	err := client.doRequest("GET", "/test", &result)
+	if err == nil {
+		t.Fatal("doRequest() with unreachable server error = nil, want error")
+	}
+}
+
+func TestClient_DoRequest_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"success": false, "errors": [{"message": "Internal Server Error"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-token")
+	client.baseURL = server.URL
+
+	var result map[string]interface{}
+	err := client.doRequest("GET", "/test", &result)
+	if err == nil {
+		t.Fatal("doRequest() with 500 error = nil, want error")
+	}
+
+	// Should mention status code
+	if err != nil && err.Error() == "" {
+		t.Error("error message is empty")
+	}
+}
