@@ -4,10 +4,13 @@ import "fmt"
 
 // Worker represents a Cloudflare worker
 type Worker struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	CPUMS    int    `json:"cpu_ms"`
-	Requests int    `json:"requests"`
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	CPUMS       int     `json:"cpu_ms"`
+	Requests    int     `json:"requests"`
+	Errors      int     `json:"errors,omitempty"`
+	Status      string  `json:"status,omitempty"`
+	SuccessRate float64 `json:"success_rate,omitempty"`
 }
 
 type workersResponse struct {

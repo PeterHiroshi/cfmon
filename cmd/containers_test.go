@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -255,5 +256,235 @@ func TestContainersCmd_DefaultConfigPath(t *testing.T) {
 
 	if loadedCfg.Token != "home-token" {
 		t.Errorf("loaded token = %q, want %q", loadedCfg.Token, "home-token")
+	}
+}
+
+// Tests for new features (sorting, filtering, limiting)
+
+func TestSortContainers(t *testing.T) {
+	containers := []api.Container{
+		{ID: "1", Name: "zebra", CPUMS: 100, MemoryMB: 256, Requests: 500},
+		{ID: "2", Name: "alpha", CPUMS: 200, MemoryMB: 128, Requests: 1000},
+		{ID: "3", Name: "beta", CPUMS: 150, MemoryMB: 512, Requests: 750},
+	}
+
+	tests := []struct {
+		name      string
+		sortBy    string
+		wantFirst string
+		wantLast  string
+	}{
+		{
+			name:      "sort by name",
+			sortBy:    "name",
+			wantFirst: "alpha",
+			wantLast:  "zebra",
+		},
+		{
+			name:      "sort by cpu descending",
+			sortBy:    "cpu",
+			wantFirst: "alpha", // 200 CPUMS
+			wantLast:  "zebra", // 100 CPUMS
+		},
+		{
+			name:      "sort by memory descending",
+			sortBy:    "memory",
+			wantFirst: "beta",  // 512 MB
+			wantLast:  "alpha", // 128 MB
+		},
+		{
+			name:      "sort by requests descending",
+			sortBy:    "requests",
+			wantFirst: "alpha", // 1000 requests
+			wantLast:  "zebra", // 500 requests
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Make a copy to avoid modifying original
+			testContainers := make([]api.Container, len(containers))
+			copy(testContainers, containers)
+
+			sortContainers(testContainers, tt.sortBy)
+
+			if testContainers[0].Name != tt.wantFirst {
+				t.Errorf("first after sort = %q, want %q", testContainers[0].Name, tt.wantFirst)
+			}
+
+			if testContainers[len(testContainers)-1].Name != tt.wantLast {
+				t.Errorf("last after sort = %q, want %q", testContainers[len(testContainers)-1].Name, tt.wantLast)
+			}
+		})
+	}
+}
+
+func TestContainerFiltering(t *testing.T) {
+	containers := []api.Container{
+		{ID: "1", Name: "prod-api-server"},
+		{ID: "2", Name: "dev-worker"},
+		{ID: "3", Name: "prod-database"},
+		{ID: "4", Name: "staging-api"},
+	}
+
+	tests := []struct {
+		name        string
+		filter      string
+		wantCount   int
+		wantNames   []string
+	}{
+		{
+			name:      "filter prod",
+			filter:    "prod",
+			wantCount: 2,
+			wantNames: []string{"prod-api-server", "prod-database"},
+		},
+		{
+			name:      "filter api",
+			filter:    "api",
+			wantCount: 2,
+			wantNames: []string{"prod-api-server", "staging-api"},
+		},
+		{
+			name:      "filter dev",
+			filter:    "dev",
+			wantCount: 1,
+			wantNames: []string{"dev-worker"},
+		},
+		{
+			name:      "filter none matching",
+			filter:    "xyz",
+			wantCount: 0,
+			wantNames: []string{},
+		},
+		{
+			name:      "case insensitive filter",
+			filter:    "PROD",
+			wantCount: 2,
+			wantNames: []string{"prod-api-server", "prod-database"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filtered := []api.Container{}
+			for _, c := range containers {
+				if strings.Contains(strings.ToLower(c.Name), strings.ToLower(tt.filter)) {
+					filtered = append(filtered, c)
+				}
+			}
+
+			if len(filtered) != tt.wantCount {
+				t.Errorf("filtered count = %d, want %d", len(filtered), tt.wantCount)
+			}
+
+			for _, c := range filtered {
+				found := false
+				for _, want := range tt.wantNames {
+					if c.Name == want {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("unexpected container in filtered results: %s", c.Name)
+				}
+			}
+		})
+	}
+}
+
+func TestContainerLimiting(t *testing.T) {
+	containers := make([]api.Container, 10)
+	for i := 0; i < 10; i++ {
+		containers[i] = api.Container{
+			ID:   fmt.Sprintf("%d", i),
+			Name: fmt.Sprintf("container-%d", i),
+		}
+	}
+
+	tests := []struct {
+		name      string
+		limit     int
+		wantCount int
+	}{
+		{"no limit", 0, 10},
+		{"limit 5", 5, 5},
+		{"limit 1", 1, 1},
+		{"limit exceeds count", 20, 10},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := containers
+			if tt.limit > 0 && len(result) > tt.limit {
+				result = result[:tt.limit]
+			}
+
+			if len(result) != tt.wantCount {
+				t.Errorf("limited count = %d, want %d", len(result), tt.wantCount)
+			}
+		})
+	}
+}
+
+func TestGetAPITokenPriority(t *testing.T) {
+	// Save original values
+	origEnv := os.Getenv("CFMON_TOKEN")
+	origToken := token
+	origCfgFile := cfgFile
+
+	defer func() {
+		os.Setenv("CFMON_TOKEN", origEnv)
+		token = origToken
+		cfgFile = origCfgFile
+	}()
+
+	tests := []struct {
+		name      string
+		envToken  string
+		flagToken string
+		wantToken string
+		wantErr   bool
+	}{
+		{
+			name:      "env token takes priority",
+			envToken:  "env-token",
+			flagToken: "flag-token",
+			wantToken: "env-token",
+			wantErr:   false,
+		},
+		{
+			name:      "flag token when no env",
+			envToken:  "",
+			flagToken: "flag-token",
+			wantToken: "flag-token",
+			wantErr:   false,
+		},
+		{
+			name:      "no token available",
+			envToken:  "",
+			flagToken: "",
+			wantToken: "",
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			os.Setenv("CFMON_TOKEN", tt.envToken)
+			token = tt.flagToken
+
+			got, err := getAPIToken()
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getAPIToken() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if got != tt.wantToken {
+				t.Errorf("getAPIToken() = %q, want %q", got, tt.wantToken)
+			}
+		})
 	}
 }

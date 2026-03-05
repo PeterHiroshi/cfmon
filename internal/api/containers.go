@@ -8,6 +8,8 @@ type Container struct {
 	Name     string `json:"name"`
 	CPUMS    int    `json:"cpu_ms"`
 	MemoryMB int    `json:"memory_mb"`
+	Requests int    `json:"requests,omitempty"`
+	Status   string `json:"status,omitempty"`
 }
 
 type containersResponse struct {

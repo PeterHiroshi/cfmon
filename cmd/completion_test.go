@@ -36,7 +36,7 @@ func TestCompletionCmd_Bash(t *testing.T) {
 
 	// Should contain bash completion script markers
 	if !strings.Contains(output, "bash") && !strings.Contains(output, "complete") {
-		t.Errorf("bash completion output doesn't look like a bash script: %q", output[:min(100, len(output))])
+		t.Errorf("bash completion output doesn't look like a bash script: %q", output[:minInt(100, len(output))])
 	}
 }
 
@@ -241,8 +241,8 @@ func TestCompletionCmd_ShortDescription(t *testing.T) {
 	t.Fatal("completion command not found")
 }
 
-// Helper function for min (Go 1.20 doesn't have built-in min)
-func min(a, b int) int {
+// Helper function for minInt (Go 1.20 doesn't have built-in min)
+func minInt(a, b int) int {
 	if a < b {
 		return a
 	}

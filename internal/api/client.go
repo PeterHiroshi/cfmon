@@ -26,6 +26,11 @@ func NewClient(token string) *Client {
 	}
 }
 
+// SetTimeout sets the HTTP client timeout
+func (c *Client) SetTimeout(timeout time.Duration) {
+	c.httpClient.Timeout = timeout
+}
+
 // doRequest performs an HTTP request to the Cloudflare API
 func (c *Client) doRequest(method, path string, result interface{}) error {
 	url := c.baseURL + path

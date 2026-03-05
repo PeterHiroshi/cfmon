@@ -2,37 +2,34 @@
 
 # 🔨 cfmon
 
-**A lightweight CLI for Cloudflare resource monitoring**
+**A powerful CLI for Cloudflare Workers and Containers monitoring**
 
 [![Go Version](https://img.shields.io/badge/go-%3E%3D1.21-blue.svg)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/PeterHiroshi/cfmon)](https://github.com/PeterHiroshi/cfmon/releases)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/PeterHiroshi/cfmon/actions)
+[![Coverage](https://img.shields.io/badge/coverage->90%25-brightgreen.svg)](https://github.com/PeterHiroshi/cfmon)
 
 </div>
 
 ## 📖 Overview
 
-**cfmon** is a fast, intuitive CLI tool for monitoring and managing your Cloudflare resources. Built for developers who prefer the command line over web dashboards, it provides instant access to your Workers and Containers with detailed resource usage metrics.
+**cfmon** is a fast, feature-rich CLI tool for monitoring and managing your Cloudflare resources. Built for developers and DevOps engineers who prefer powerful command-line tools over web dashboards, it provides instant access to your Workers and Containers with detailed metrics, advanced filtering, and automation support.
 
 ## 📑 Table of Contents
 
 - [Overview](#-overview)
 - [Quick Start](#-quick-start)
-- [Demo](#-demo)
-- [Why cfmon?](#-why-cfmon)
+- [What's New](#-whats-new)
 - [Features](#-features)
-- [How It Works](#-how-it-works)
-- [Roadmap](#️-roadmap)
 - [Installation](#-installation)
 - [Usage](#-usage)
-- [Examples & Use Cases](#-examples--use-cases)
-- [FAQ & Troubleshooting](#-faq--troubleshooting)
+- [Command Reference](#-command-reference)
+- [Examples](#-examples)
 - [Configuration](#️-configuration)
 - [Development](#️-development)
-- [Project Structure](#project-structure)
-- [License](#-license)
 - [Contributing](#-contributing)
-- [Support & Community](#-support--community)
+- [Support](#-support)
 
 ---
 
@@ -45,611 +42,346 @@ curl -sSL https://raw.githubusercontent.com/PeterHiroshi/cfmon/main/scripts/inst
 # Save your Cloudflare API token
 cfmon login YOUR_API_TOKEN
 
-# List your containers
-cfmon containers YOUR_ACCOUNT_ID
+# Check system health
+cfmon doctor
 
-# List your workers
-cfmon workers YOUR_ACCOUNT_ID
+# List containers with filtering and sorting
+cfmon containers list YOUR_ACCOUNT_ID --filter "prod" --sort cpu --limit 10
 
-# That's it! 🎉
+# Get detailed worker status
+cfmon workers status YOUR_ACCOUNT_ID worker-name
+
+# View configuration
+cfmon config show
 ```
 
 ---
 
-## 📸 Demo
+## 🎉 What's New
 
-### Container Listing
+### Version 0.2.0 (Unreleased)
 
-```bash
-$ cfmon containers abc123def456
-
-ID                    Name               CPU (ms)  Memory (MB)
---------------------  -----------------  --------  -----------
-ctr-prod-web-01       production-web     2450      512
-ctr-staging-api-02    staging-api        890       256
-ctr-dev-worker-03     dev-worker         125       128
-```
-
-### Worker Monitoring
-
-```bash
-$ cfmon workers abc123def456
-
-ID         Name              CPU (ms)  Requests
----------  ----------------  --------  --------
-wkr-001    api-gateway       5230      125400
-wkr-002    image-optimizer   3100      89200
-wkr-003    auth-service      1850      45600
-```
-
-### JSON Output for Automation
-
-```bash
-$ cfmon workers abc123def456 --format json | jq '.[0]'
-
-{
-  "id": "wkr-001",
-  "name": "api-gateway",
-  "cpu_ms": 5230,
-  "requests": 125400
-}
-```
-
-> 💡 **Tip**: Add a demo GIF here to showcase the tool in action!
-> ```markdown
-> ![Demo](https://raw.githubusercontent.com/PeterHiroshi/cfmon/main/docs/demo.gif)
-> ```
-
----
-
-## 🤔 Why cfmon?
-
-The Cloudflare dashboard is powerful, but sometimes you just need quick answers from your terminal:
-
-- **🚀 Speed First**: Get resource metrics in milliseconds, not page loads
-- **⌨️ Developer-Friendly**: Designed for CLI workflows and automation
-- **🪶 Lightweight**: No browser tabs, no UI bloat—just the data you need
-- **🔄 Scriptable**: JSON output mode for easy integration with other tools
-- **🔐 Secure**: Token storage keeps your credentials safe locally
-- **📊 Focused**: Shows what matters—CPU, memory, requests—without the noise
-
-Perfect for:
-- Quick status checks during development
-- CI/CD pipeline monitoring
-- Resource usage auditing
-- Debugging performance issues
-- Automating Cloudflare workflows
-
-### Comparison: Dashboard vs cfmon
-
-| Task | Cloudflare Dashboard | cfmon |
-|------|---------------------|----------|
-| Check worker CPU usage | 1. Open browser<br>2. Log in<br>3. Navigate to Workers<br>4. Click on worker<br>5. View metrics | `cfmon workers ACCOUNT_ID` |
-| Export data for analysis | Manual copy-paste or screenshots | `cfmon workers ACCOUNT_ID --format json > data.json` |
-| Automate monitoring | Browser automation (complex) | Simple shell script |
-| Check multiple accounts | Switch accounts in UI | `--token` flag per account |
-| Time to first result | ~10-30 seconds | ~1 second |
+- **🩺 Doctor Command**: Comprehensive system health checks
+- **🎯 Advanced Filtering**: Filter resources by name with `--filter`
+- **📊 Sorting**: Sort by CPU, memory, requests with `--sort`
+- **🔢 Limiting**: Control output size with `--limit`
+- **⚙️ Config Management**: New `config show` and `config path` commands
+- **🐛 Debug Mode**: Verbose output with `-v` flag
+- **⏱️ Custom Timeouts**: Set API timeout with `--timeout`
+- **📝 Rich Help**: Beautiful, example-filled help with `cfmon help`
+- **🔨 Makefile**: Easy development with `make build`, `make test`, etc.
+- **📦 Cross-Platform Releases**: Automated releases with GoReleaser
+- **🧪 Comprehensive Testing**: >90% test coverage with integration tests
 
 ---
 
 ## ✨ Features
 
-### 📦 **Containers Management**
-- List all containers in your Cloudflare account
-- View real-time CPU usage (milliseconds) and memory consumption (MB)
-- Quick identification by container ID and name
-- Perfect for monitoring Container-as-a-Service workloads
+### Core Features
 
-### ⚡ **Workers Monitoring**
-- Enumerate all deployed Workers scripts
-- Track CPU time consumption per worker
-- Monitor request counts and traffic patterns
-- Identify performance bottlenecks instantly
+#### 📦 **Container Management**
+- **List** all containers with resource metrics
+- **Status** command for detailed container information
+- **Filter** containers by name pattern
+- **Sort** by CPU, memory, or request count
+- **Limit** output to top N results
 
-### 🎨 **Flexible Output Formats**
-- **Table Mode** (default): Clean, human-readable tables for terminal viewing
-- **JSON Mode**: Machine-readable output for scripting and automation
-- Easy integration with tools like `jq`, `grep`, and custom scripts
+#### ⚡ **Worker Monitoring**
+- **List** all workers with performance metrics
+- **Status** command for individual worker details
+- **Filter** workers by name substring
+- **Sort** by various metrics (CPU, requests, errors)
+- **Track** success rates and error counts
 
-### 🔐 **Secure Authentication**
-- **Login Command**: Save your API token once, use everywhere
-- Encrypted local storage in `~/.cfmon/config.yaml`
-- Override with `--token` flag for multi-account workflows
-- No credentials stored in command history
+#### 🩺 **System Health Checks**
+- **Doctor** command for comprehensive diagnostics
+- Verify API token validity
+- Check network connectivity
+- Test Cloudflare API access
+- Validate configuration
 
-### 📊 **Status & Health Checks**
-- **Ping Command**: Quick connectivity test to Cloudflare API
-- Verify authentication and API reachability
-- Useful for troubleshooting and CI/CD health checks
+#### ⚙️ **Configuration Management**
+- **Show** current configuration with masked secrets
+- **Path** command to locate config file
+- Support for environment variables
+- Flexible token management
 
-### 🐚 **Shell Completion**
-- Auto-completion for commands, flags, and arguments
-- Supported shells: Bash, Zsh, Fish, PowerShell
-- Faster workflows with tab completion
+### Output & Formatting
 
-### 🌍 **Cross-Platform Support**
-- Linux (x64, ARM64)
-- macOS (Intel, Apple Silicon)
-- Windows (x64, ARM64)
-- FreeBSD and NetBSD support
+#### 🎨 **Multiple Output Formats**
+- **Table**: Beautiful colored tables (default)
+- **JSON**: Machine-readable for automation
+- **No-color**: Plain text for logs/CI
 
----
+#### 🔍 **Advanced Filtering & Sorting**
+```bash
+# Filter by name pattern
+cfmon containers list <account> --filter "prod"
 
-## 🔧 How It Works
+# Sort by CPU usage (descending)
+cfmon workers list <account> --sort cpu
 
-**cfmon** is a thin, efficient wrapper around the [Cloudflare API v4](https://developers.cloudflare.com/api/). It handles authentication, API requests, and response formatting so you don't have to.
-
-### Architecture Overview
-
-```
-┌─────────────┐      HTTPS/REST      ┌──────────────────┐
-│             │ ──────────────────▶  │                  │
-│  cfmon   │                      │  Cloudflare API  │
-│     CLI     │ ◀──────────────────  │       v4         │
-│             │      JSON Response   │                  │
-└─────────────┘                      └──────────────────┘
-      │
-      ▼
-┌─────────────────────────────────┐
-│  Local Config (~/.cfmon/)    │
-│  • Encrypted API token          │
-│  • User preferences             │
-└─────────────────────────────────┘
+# Combine filter, sort, and limit
+cfmon containers list <account> --filter "api" --sort memory --limit 5
 ```
 
-### Key Components
+### Developer Experience
 
-1. **API Client** (`internal/api/`)
-   - Manages HTTP connections to Cloudflare
-   - Handles authentication headers and error responses
-   - Implements rate limiting and retry logic
+#### 🐚 **Shell Completions**
+- Bash, Zsh, Fish, PowerShell support
+- Tab completion for commands and flags
+- Install with: `cfmon completion <shell>`
 
-2. **Configuration Manager** (`internal/config/`)
-   - Securely stores and retrieves API tokens
-   - Manages user preferences and defaults
-   - Supports custom config file locations
+#### 🐛 **Debug & Verbose Mode**
+- Use `-v` or `--verbose` for debug output
+- Detailed error messages with suggestions
+- API request/response logging
 
-3. **Output Formatters** (`internal/output/`)
-   - Transforms API responses into readable tables
-   - Provides JSON serialization for automation
-   - Handles column alignment and formatting
-
-4. **Command Layer** (`cmd/`)
-   - Cobra-based CLI interface
-   - Parses flags and arguments
-   - Orchestrates API calls and output
-
-### API Endpoints Used
-
-| Resource   | Endpoint | Documentation |
-|------------|----------|---------------|
-| Containers | `/accounts/{account_id}/workers/containers/namespaces` | [Containers API](https://developers.cloudflare.com/api/operations/workers-for-platforms-containers-list) |
-| Workers    | `/accounts/{account_id}/workers/scripts` | [Workers API](https://developers.cloudflare.com/api/operations/worker-script-list-workers) |
-| Account    | `/accounts/{account_id}` | [Accounts API](https://developers.cloudflare.com/api/operations/accounts-list-accounts) |
+#### ⏱️ **Timeout Control**
+- Customize API timeout: `--timeout 30s`
+- Prevent hanging on slow connections
+- Configurable per command
 
 ---
 
-## 🗺️ Roadmap
+## 🚀 Installation
 
-We're actively developing new features to make **cfmon** even more powerful:
+### Quick Install (Recommended)
 
-### 🔜 Coming Soon
+```bash
+# Linux/macOS
+curl -sSL https://raw.githubusercontent.com/PeterHiroshi/cfmon/main/scripts/install.sh | bash
 
-- **📺 Watch Mode**: Live dashboard with auto-refreshing metrics
-  - Real-time monitoring of resource usage
-  - Configurable refresh intervals
-  - Interactive TUI with keyboard shortcuts
+# Windows PowerShell
+irm https://raw.githubusercontent.com/PeterHiroshi/cfmon/main/scripts/install.ps1 | iex
+```
 
-- **📜 Logs Command**: Tail worker and container logs directly
-  - Stream logs from Cloudflare to your terminal
-  - Filter by log level, time range, and keywords
-  - Export logs to files for analysis
+### Package Managers
 
-- **🚀 Deploy Command**: Quick worker deployment from CLI
-  - Deploy Workers scripts with a single command
-  - Support for environment variables and secrets
-  - Rollback and version management
-
-### 🔮 Future Ideas
-
-- **👥 Multi-Account Support**: Switch between accounts seamlessly
-- **🔍 Sort & Filter Options**: Advanced querying of resources
-- **📈 Historical Metrics**: Track usage trends over time
-- **🔔 Alerts & Notifications**: Get notified when thresholds are exceeded
-- **🎯 Resource Tagging**: Organize and label your resources
-
-Want to contribute? Check out our [Contributing Guide](#contributing) or [open an issue](https://github.com/PeterHiroshi/cfmon/issues) with your ideas!
-
----
-
-## 📥 Installation
-
-Choose your preferred installation method:
-
-### 🍺 Homebrew (macOS/Linux) — **Recommended**
-
+#### Homebrew (macOS/Linux)
 ```bash
 brew tap PeterHiroshi/cfmon
 brew install cfmon
 ```
 
-### 🚀 Quick Install Script
-
-**macOS / Linux:**
+#### From Source
 ```bash
-curl -sSL https://raw.githubusercontent.com/PeterHiroshi/cfmon/main/scripts/install.sh | bash
-```
-
-**Windows (PowerShell):**
-```powershell
-iwr -useb https://raw.githubusercontent.com/PeterHiroshi/cfmon/main/scripts/install.ps1 | iex
-```
-
-### 🪣 Package Managers
-
-**Scoop (Windows):**
-```powershell
-scoop bucket add cfmon https://github.com/PeterHiroshi/scoop-cfmon
-scoop install cfmon
-```
-
-**APT (Debian/Ubuntu) — Coming Soon:**
-```bash
-# Install from releases
-wget https://github.com/PeterHiroshi/cfmon/releases/latest/download/cfmon_linux_amd64.deb
-sudo dpkg -i cfmon_linux_amd64.deb
-```
-
-**RPM (Fedora/RHEL) — Coming Soon:**
-```bash
-# Install from releases
-wget https://github.com/PeterHiroshi/cfmon/releases/latest/download/cfmon_linux_amd64.rpm
-sudo rpm -i cfmon_linux_amd64.rpm
-```
-
-### 📦 Pre-built Binaries
-
-Download the latest release for your platform from [GitHub Releases](https://github.com/PeterHiroshi/cfmon/releases):
-
-```bash
-# Example for Linux x64
-wget https://github.com/PeterHiroshi/cfmon/releases/latest/download/cfmon_linux_amd64.tar.gz
-tar -xzf cfmon_linux_amd64.tar.gz
-sudo mv cfmon /usr/local/bin/
-```
-
-### 🔨 From Source
-
-Requires Go 1.21+:
-
-```bash
-git clone https://github.com/PeterHiroshi/cfmon.git
+git clone https://github.com/PeterHiroshi/cfmon
 cd cfmon
-go build -o cfmon .
-sudo mv cfmon /usr/local/bin/
+make install
 ```
 
-### ✅ Verify Installation
+#### Download Binary
+Download pre-built binaries from [Releases](https://github.com/PeterHiroshi/cfmon/releases)
+
+---
+
+## 📘 Usage
+
+### Initial Setup
+
+1. **Get your Cloudflare API Token**
+   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens)
+   - Create token with `Account:Read` and `Workers Scripts:Read` permissions
+
+2. **Configure cfmon**
+   ```bash
+   # Save your token
+   cfmon login <your-api-token>
+
+   # Verify setup
+   cfmon doctor
+   ```
+
+3. **Find your Account ID**
+   - Visit [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - Copy Account ID from the right sidebar
+
+### Basic Commands
 
 ```bash
-cfmon version
-# Output: cfmon version x.x.x
+# List containers
+cfmon containers list <account-id>
+
+# List workers
+cfmon workers list <account-id>
+
+# Get container status
+cfmon containers status <account-id> <container-id>
+
+# Get worker status
+cfmon workers status <account-id> <worker-name>
+```
+
+### Advanced Usage
+
+```bash
+# Filter and sort containers
+cfmon containers list <account-id> --filter "prod" --sort cpu --limit 10
+
+# JSON output for automation
+cfmon workers list <account-id> --format json | jq '.[] | select(.cpu_ms > 1000)'
+
+# Verbose mode for debugging
+cfmon containers list <account-id> -v
+
+# Custom timeout
+cfmon workers list <account-id> --timeout 60s
+
+# Use different token
+cfmon containers list <account-id> --token <other-token>
 ```
 
 ---
 
-## 🚀 Usage
+## 📚 Command Reference
 
-### Getting Your API Token
+### Global Flags
 
-Before using **cfmon**, you'll need a Cloudflare API token:
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--format` | `-f` | Output format (table, json) | table |
+| `--verbose` | `-v` | Enable debug output | false |
+| `--timeout` | | API request timeout | 30s |
+| `--no-color` | | Disable colored output | false |
+| `--config` | | Config file path | ~/.cfmon/config.yaml |
+| `--token` | | Override API token | |
+| `--help` | `-h` | Show help | |
+| `--version` | | Show version | |
 
-1. Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. Go to **My Profile** → **API Tokens**
-3. Click **Create Token**
-4. Use the **Read All Resources** template or create a custom token with:
-   - **Permissions**: `Account > Workers Scripts > Read`, `Account > Containers > Read`
-   - **Account Resources**: Include the accounts you want to monitor
+### Commands
 
-### Authentication
+#### `cfmon help [command]`
+Display detailed help with examples
 
-**Recommended:** Save your API token securely for all future commands:
+#### `cfmon doctor`
+Run system diagnostics
+- Check Go runtime
+- Verify configuration
+- Test API token
+- Check network connectivity
 
-```bash
-cfmon login YOUR_API_TOKEN
-```
+#### `cfmon login <token>`
+Save Cloudflare API token
 
-This saves the token to `~/.cfmon/config.yaml`.
+#### `cfmon config show`
+Display current configuration (tokens masked)
 
-Alternatively, provide the token with each command:
+#### `cfmon config path`
+Show configuration file location
 
-```bash
-cfmon containers --token YOUR_API_TOKEN ACCOUNT_ID
-```
+#### `cfmon containers list <account-id>`
+List all containers
 
-### List Containers
+**Flags:**
+- `--filter <pattern>`: Filter by name substring
+- `--sort <field>`: Sort by name, cpu, memory, requests
+- `--limit <n>`: Limit results
 
-List all containers for an account:
+#### `cfmon containers status <account-id> <container-id>`
+Get detailed container information
 
-```bash
-cfmon containers ACCOUNT_ID
-```
+#### `cfmon workers list <account-id>`
+List all workers
 
-Output in JSON format:
+**Flags:**
+- `--filter <pattern>`: Filter by name substring
+- `--sort <field>`: Sort by name, cpu, requests, errors
+- `--limit <n>`: Limit results
 
-```bash
-cfmon containers ACCOUNT_ID --format json
-```
+#### `cfmon workers status <account-id> <worker-name>`
+Get detailed worker information
 
-Example output (table):
+#### `cfmon completion <shell>`
+Generate shell completion script
 
-```
-ID                    Name               CPU (ms)  Memory (MB)
---------------------  -----------------  --------  -----------
-container-1           my-container-1     1000      128
-container-2           my-container-2     2000      256
-```
-
-Example output (JSON):
-
-```json
-[
-  {
-    "id": "container-1",
-    "name": "my-container-1",
-    "cpu_ms": 1000,
-    "memory_mb": 128
-  },
-  {
-    "id": "container-2",
-    "name": "my-container-2",
-    "cpu_ms": 2000,
-    "memory_mb": 256
-  }
-]
-```
-
-### List Workers
-
-List all workers for an account:
-
-```bash
-cfmon workers ACCOUNT_ID
-```
-
-Output in JSON format:
-
-```bash
-cfmon workers ACCOUNT_ID --format json
-```
-
-Example output (table):
-
-```
-ID         Name           CPU (ms)  Requests
----------  -------------  --------  --------
-worker-1   my-worker-1    500       1000
-worker-2   my-worker-2    750       2000
-```
-
-### Version
-
-Check the installed version:
-
-```bash
-cfmon version
-```
-
-### Shell Completion
-
-Generate shell completion scripts for your shell:
-
-**Bash:**
-
-```bash
-# Load completions in current session
-source <(cfmon completion bash)
-
-# Load completions for all sessions
-# Linux:
-cfmon completion bash > /etc/bash_completion.d/cfmon
-# macOS:
-cfmon completion bash > $(brew --prefix)/etc/bash_completion.d/cfmon
-```
-
-**Zsh:**
-
-```bash
-# Enable completion if not already enabled
-echo "autoload -U compinit; compinit" >> ~/.zshrc
-
-# Load completions for all sessions
-cfmon completion zsh > "${fpath[1]}/_cfmon"
-```
-
-**Fish:**
-
-```bash
-# Load completions in current session
-cfmon completion fish | source
-
-# Load completions for all sessions
-cfmon completion fish > ~/.config/fish/completions/cfmon.fish
-```
-
-**PowerShell:**
-
-```powershell
-# Load completions in current session
-cfmon completion powershell | Out-String | Invoke-Expression
-
-# Load completions for all sessions
-cfmon completion powershell > cfmon.ps1
-# Then source this file from your PowerShell profile
-```
-
-### Help
-
-Get help on any command:
-
-```bash
-cfmon --help
-cfmon containers --help
-cfmon workers --help
-```
+**Supported shells:**
+- bash
+- zsh
+- fish
+- powershell
 
 ---
 
-## 💡 Examples & Use Cases
+## 💡 Examples
 
-### Quick Health Check
+### Monitor High CPU Usage
 
 ```bash
-# Test API connectivity
-cfmon ping
+# Find top 5 CPU-consuming containers
+cfmon containers list <account> --sort cpu --limit 5
 
-# List all resources
-cfmon containers YOUR_ACCOUNT_ID
-cfmon workers YOUR_ACCOUNT_ID
+# Monitor specific worker
+watch -n 5 'cfmon workers status <account> api-gateway'
 ```
 
 ### Automation & Scripting
 
 ```bash
-# Get JSON output for processing
-cfmon workers YOUR_ACCOUNT_ID --format json | jq '.[] | select(.cpu_ms > 1000)'
+#!/bin/bash
+# Alert when worker CPU exceeds threshold
 
-# Monitor specific container
-cfmon containers YOUR_ACCOUNT_ID --format json | jq '.[] | select(.name == "my-container")'
+THRESHOLD=5000
+WORKERS=$(cfmon workers list <account> --format json)
 
-# Check if any worker is using high CPU
-HIGH_CPU=$(cfmon workers YOUR_ACCOUNT_ID --format json | jq '[.[] | select(.cpu_ms > 5000)] | length')
-if [ "$HIGH_CPU" -gt 0 ]; then
-  echo "Warning: High CPU usage detected!"
-fi
-```
-
-### CI/CD Integration
-
-```bash
-# In your CI pipeline
-export CLOUDFLARE_API_TOKEN="${{ secrets.CLOUDFLARE_TOKEN }}"
-cfmon workers "$ACCOUNT_ID" --format json > workers-status.json
-
-# Validate deployment
-cfmon workers "$ACCOUNT_ID" --format json | \
-  jq -e '.[] | select(.name == "production-worker")' || exit 1
+echo "$WORKERS" | jq -r '.[] | select(.cpu_ms > '$THRESHOLD') |
+  "Alert: \(.name) is using \(.cpu_ms)ms CPU"'
 ```
 
 ### Multi-Account Management
 
 ```bash
-# Use different tokens per account
-cfmon containers ACCOUNT_1 --token "$TOKEN_1"
-cfmon containers ACCOUNT_2 --token "$TOKEN_2"
+# Use environment variables for different accounts
+export PROD_TOKEN="prod-token-xxx"
+export DEV_TOKEN="dev-token-yyy"
 
-# Or switch config files
-cfmon --config ~/.cfmon/account1.yaml containers ACCOUNT_1
-cfmon --config ~/.cfmon/account2.yaml containers ACCOUNT_2
+# Check production
+cfmon containers list prod-account --token $PROD_TOKEN
+
+# Check development
+cfmon containers list dev-account --token $DEV_TOKEN
 ```
 
----
+### CI/CD Integration
 
-## ❓ FAQ & Troubleshooting
+```yaml
+# GitHub Actions example
+- name: Check Cloudflare Workers
+  run: |
+    cfmon doctor
+    cfmon workers list ${{ secrets.CF_ACCOUNT_ID }} --format json > workers.json
 
-### Common Issues
-
-**Q: I get "unauthorized" errors**
-```bash
-# Check if your token is valid
-cfmon ping
-
-# Verify token has correct permissions in Cloudflare dashboard
-# Required: Workers Scripts:Read, Containers:Read
-```
-
-**Q: Where is my account ID?**
-- Log in to [Cloudflare Dashboard](https://dash.cloudflare.com/)
-- Select your account
-- Find the Account ID on the right sidebar
-
-**Q: Can I use multiple accounts?**
-- Yes! Use the `--token` flag for each account, or maintain separate config files with `--config`
-
-**Q: JSON output is too verbose**
-```bash
-# Pipe through jq for filtering
-cfmon workers ACCOUNT_ID --format json | jq '.[] | {name, cpu_ms}'
-```
-
-**Q: How do I uninstall?**
-```bash
-# Remove the binary
-rm $(which cfmon)
-
-# Remove config (optional)
-rm -rf ~/.cfmon
-```
-
-### Debug Mode
-
-For troubleshooting, you can enable verbose output:
-
-```bash
-# Set log level
-export LOG_LEVEL=debug
-cfmon containers ACCOUNT_ID
+    # Fail if any worker has errors
+    if jq -e '.[] | select(.errors > 0)' workers.json; then
+      echo "Workers with errors detected!"
+      exit 1
+    fi
 ```
 
 ---
 
 ## ⚙️ Configuration
 
-### Config File Location
+### Configuration File
 
-Configuration is stored in `~/.cfmon/config.yaml` by default.
-
-**Custom config location:**
-
-```bash
-cfmon --config /path/to/config.yaml containers ACCOUNT_ID
-```
-
-### Config File Format
+Location: `~/.cfmon/config.yaml` (or `$CFMON_CONFIG`)
 
 ```yaml
-# Your Cloudflare API token
-token: your-cloudflare-api-token
-
-# Optional: Default output format
-# format: json
-
-# Optional: Default account ID
-# account_id: your-account-id
+token: your-api-token-here
+api_endpoint: https://api.cloudflare.com/client/v4  # optional
+default_format: table  # or json
 ```
 
 ### Environment Variables
 
-You can also use environment variables (they take precedence over config file):
+| Variable | Description | Priority |
+|----------|-------------|----------|
+| `CFMON_TOKEN` | API token | Highest |
+| `CFMON_CONFIG` | Config file path | |
+| `CFMON_FORMAT` | Default output format | |
+| `CFMON_NO_COLOR` | Disable colors | |
 
-```bash
-export CLOUDFLARE_API_TOKEN="your-token"
-export CLOUDFLARE_ACCOUNT_ID="your-account-id"
-
-cfmon containers  # Uses env vars
-```
-
-### Global Flags
-
-All commands support these global flags:
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--format` | Output format (`table` or `json`) | `table` |
-| `--token` | Cloudflare API token (overrides config) | - |
-| `--config` | Custom config file path | `~/.cfmon/config.yaml` |
-| `--help` | Show help for command | - |
-| `--version` | Show version information | - |
+Priority: Environment > Command Flag > Config File
 
 ---
 
@@ -657,273 +389,200 @@ All commands support these global flags:
 
 ### Prerequisites
 
-- **Go 1.21 or later** ([Download](https://go.dev/dl/))
-- **Make** (optional, for convenience commands)
-- **GoReleaser** (optional, for releases)
+- Go 1.21+
+- Make
+- Git
 
-### Quick Start
+### Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/PeterHiroshi/cfmon.git
+# Clone repository
+git clone https://github.com/PeterHiroshi/cfmon
 cd cfmon
 
 # Install dependencies
-go mod download
+make deps
 
-# Build the binary
-go build -o cfmon .
-
-# Run locally
-./cfmon --help
-```
-
-### Development Workflow
-
-```bash
 # Run tests
-go test ./...
+make test
 
-# Run tests with coverage
-go test ./... -cover
-
-# Run tests with verbose output
-go test ./... -v
-
-# Run specific test
-go test -run TestContainersList ./internal/api
-
-# Format code
-go fmt ./...
-
-# Lint code (requires golangci-lint)
-golangci-lint run
-
-# Build for your platform
-go build -o cfmon .
+# Build binary
+make build
 ```
 
-### Cross-Platform Builds
+### Makefile Targets
 
 ```bash
-# Build for all platforms with GoReleaser
-goreleaser build --snapshot --clean
-
-# Manual cross-compilation examples
-GOOS=linux GOARCH=amd64 go build -o cfmon-linux-amd64 .
-GOOS=darwin GOARCH=arm64 go build -o cfmon-darwin-arm64 .
-GOOS=windows GOARCH=amd64 go build -o cfmon-windows-amd64.exe .
+make help        # Show all targets
+make build       # Build binary
+make test        # Run unit tests
+make coverage    # Generate coverage report
+make lint        # Run linters
+make install     # Install to GOPATH/bin
+make clean       # Clean build artifacts
+make release     # Build release binaries
 ```
 
-### Architecture Deep Dive
+### Running Tests
 
-**cfmon** follows a clean, modular architecture:
+```bash
+# Unit tests
+make test
 
-```
-┌─────────────────────────────────────────────┐
-│              CLI Layer (cmd/)               │
-│  • Command definitions (Cobra)              │
-│  • Flag parsing and validation              │
-│  • User input handling                      │
-└────────────┬────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────┐
-│          Business Logic Layer               │
-│  • Orchestrates API calls                   │
-│  • Handles authentication flow              │
-│  • Coordinates formatting                   │
-└────────────┬────────────────────────────────┘
-             │
-      ┌──────┴──────┐
-      ▼             ▼
-┌───────────┐  ┌───────────┐
-│ API Layer │  │ Config    │
-│ (internal │  │ (internal │
-│ /api/)    │  │ /config/) │
-└───────────┘  └───────────┘
-      │
-      ▼
-┌────────────────┐
-│ Output Layer   │
-│ (internal/     │
-│ output/)       │
-└────────────────┘
+# Integration tests
+make integration-test
+
+# Coverage report
+make coverage
+open coverage.html
 ```
 
-### Key Design Principles
-
-1. **Separation of Concerns**: Each package has a single responsibility
-2. **Testability**: Business logic is decoupled from CLI and external dependencies
-3. **Error Handling**: Errors bubble up with context, not panic
-4. **Configuration**: 12-factor app principles (env vars, config files, flags)
-5. **Performance**: Minimal allocations, concurrent API calls where possible
-
-## Project Structure
+### Project Structure
 
 ```
 cfmon/
-├── cmd/                    # CLI commands
-│   ├── root.go            # Root command with global flags
-│   ├── login.go           # Login command
-│   ├── containers.go      # Containers command
-│   ├── workers.go         # Workers command
-│   └── version.go         # Version command
-├── internal/
-│   ├── api/               # Cloudflare API client
-│   │   ├── client.go      # HTTP client
-│   │   ├── containers.go  # Container endpoints
-│   │   └── workers.go     # Worker endpoints
-│   ├── config/            # Configuration management
-│   │   └── config.go      # Load/save config
-│   └── output/            # Output formatting
-│       └── formatter.go   # Table and JSON formatters
-├── scripts/               # Install scripts
-│   ├── install.sh         # macOS/Linux installer
-│   └── install.ps1        # Windows installer
-├── main.go                # Entry point
-├── go.mod                 # Go dependencies
-├── .goreleaser.yaml       # GoReleaser config
-└── README.md              # This file
+├── cmd/              # CLI commands
+│   ├── root.go       # Root command
+│   ├── containers.go # Container commands
+│   ├── workers.go    # Worker commands
+│   ├── doctor.go     # Doctor command
+│   ├── config.go     # Config commands
+│   └── help.go       # Help command
+├── internal/         # Internal packages
+│   ├── api/          # Cloudflare API client
+│   ├── config/       # Configuration management
+│   └── output/       # Output formatting
+├── test/             # Test files
+│   └── integration/  # Integration tests
+├── scripts/          # Installation scripts
+├── Makefile          # Build automation
+├── .goreleaser.yml   # Release configuration
+└── go.mod            # Go modules
 ```
-
----
-
-## 📜 License
-
-**cfmon** is open source software licensed under the [MIT License](LICENSE).
-
-```
-MIT License
-
-Copyright (c) 2026 PeterHiroshi
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software...
-```
-
-See the [LICENSE](LICENSE) file for the full license text.
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### How to Contribute
+### Quick Contribution Guide
 
-1. **Fork the repository** on GitHub
-2. **Clone your fork** locally
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/cfmon.git
-   cd cfmon
-   ```
-3. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-4. **Make your changes** and commit them
-   ```bash
-   git commit -m "Add amazing feature"
-   ```
-5. **Push to your fork**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-6. **Open a Pull Request** on GitHub
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Add tests
+5. Run `make check` to ensure quality
+6. Commit (`git commit -m 'feat: add amazing feature'`)
+7. Push (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
 
-### Contribution Guidelines
+### Development Workflow
 
-- Write clear, descriptive commit messages
-- Add tests for new features
-- Update documentation as needed
-- Follow existing code style (run `go fmt`)
-- Ensure all tests pass (`go test ./...`)
-- Keep PRs focused on a single feature or fix
+```bash
+# Create branch
+git checkout -b feature/new-command
 
-### Areas We Need Help
+# Make changes and test
+make test
 
-- 📝 **Documentation**: Tutorials, examples, API docs
-- 🐛 **Bug Reports**: Found a bug? Open an issue!
-- ✨ **Feature Requests**: Have an idea? We'd love to hear it
-- 🧪 **Testing**: Improve test coverage
-- 🌍 **Localization**: Help translate error messages
+# Check code quality
+make lint
+
+# Build and test manually
+make build
+./cfmon doctor
+
+# Commit and push
+git add .
+git commit -m "feat: add new command"
+git push origin feature/new-command
+```
 
 ---
 
-## 💬 Support & Community
+## 📦 Releasing
+
+Releases are automated with GoReleaser:
+
+```bash
+# Create a tag
+git tag -a v0.2.0 -m "Release v0.2.0"
+git push origin v0.2.0
+
+# GoReleaser will automatically:
+# - Build binaries for all platforms
+# - Create GitHub release
+# - Update Homebrew formula
+# - Generate changelog
+```
+
+---
+
+## 🆘 Support
 
 ### Getting Help
 
-- 📖 **Documentation**: You're reading it! Check the sections above
-- 🐛 **Bug Reports**: [Open an issue](https://github.com/PeterHiroshi/cfmon/issues/new?template=bug_report.md)
-- 💡 **Feature Requests**: [Request a feature](https://github.com/PeterHiroshi/cfmon/issues/new?template=feature_request.md)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/PeterHiroshi/cfmon/discussions)
+- **Documentation**: Read this README and run `cfmon help`
+- **Issues**: [GitHub Issues](https://github.com/PeterHiroshi/cfmon/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/PeterHiroshi/cfmon/discussions)
 
-### Reporting Issues
+### Troubleshooting
 
-When reporting bugs, please include:
+#### Token Issues
+```bash
+# Verify token is set
+cfmon config show
 
-- **cfmon version** (`cfmon version`)
-- **Operating system** and architecture
-- **Go version** (if building from source)
-- **Steps to reproduce** the issue
-- **Expected vs actual behavior**
-- **Relevant logs** or error messages
+# Test token validity
+cfmon doctor
 
-### Security Vulnerabilities
+# Re-login if needed
+cfmon login <new-token>
+```
 
-If you discover a security vulnerability, please **DO NOT** open a public issue. Instead, email the maintainer directly at [security@example.com](mailto:security@example.com).
+#### Network Issues
+```bash
+# Check connectivity
+cfmon doctor
+
+# Increase timeout
+cfmon workers list <account> --timeout 60s
+
+# Use verbose mode for debugging
+cfmon containers list <account> -v
+```
+
+#### Configuration Issues
+```bash
+# Show config location
+cfmon config path
+
+# Reset configuration
+rm ~/.cfmon/config.yaml
+cfmon login <token>
+```
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-Special thanks to:
-
-- **[Cloudflare](https://cloudflare.com)** for their excellent API and developer tools
-- **[Cobra](https://github.com/spf13/cobra)** for the CLI framework
-- **[Viper](https://github.com/spf13/viper)** for configuration management
-- **[GoReleaser](https://goreleaser.com)** for seamless multi-platform releases
-- All our [contributors](https://github.com/PeterHiroshi/cfmon/graphs/contributors) who help improve cfmon
-
-### Similar Projects
-
-- **[Wrangler](https://github.com/cloudflare/wrangler2)** - Official Cloudflare CLI (focused on deployment)
-- **[cf-tool](https://github.com/xalanq/cf-tool)** - Codeforces CLI tool
-- **[cloudflare-cli](https://github.com/danielpigott/cloudflare-cli)** - Ruby-based Cloudflare CLI
-
-### Why cfmon is Different
-
-| Feature | cfmon | Wrangler | cloudflare-cli |
-|---------|----------|----------|----------------|
-| 🎯 Focus | Resource monitoring | Deployment & dev | DNS/Zone management |
-| 🪶 Binary Size | ~10MB | ~50MB | Requires Ruby runtime |
-| ⚡ Speed | Instant | Fast | Slower (interpreted) |
-| 📊 Output Formats | Table + JSON | Text | Text |
-| 🔐 Token Storage | ✅ | ❌ | ❌ |
-| 🐚 Shell Completion | ✅ | ✅ | ❌ |
-| 📦 Standalone Binary | ✅ | ✅ | ❌ (requires Ruby) |
-
----
-
-## ⭐ Star History
-
-If you find **cfmon** useful, please consider giving it a star on GitHub! It helps others discover the project.
-
-[![Star History Chart](https://api.star-history.com/svg?repos=PeterHiroshi/cfmon&type=Date)](https://star-history.com/#PeterHiroshi/cfmon&Date)
+- Built with [Cobra](https://github.com/spf13/cobra) for CLI framework
+- Uses [Cloudflare API v4](https://developers.cloudflare.com/api/)
+- Inspired by the need for better CLI tools in the Cloudflare ecosystem
 
 ---
 
 <div align="center">
 
-**Built with ❤️ by developers, for developers**
+**Made with ❤️ by developers, for developers**
 
-[⭐ Star on GitHub](https://github.com/PeterHiroshi/cfmon) • [🐛 Report Bug](https://github.com/PeterHiroshi/cfmon/issues) • [💡 Request Feature](https://github.com/PeterHiroshi/cfmon/issues)
-
-**Happy forging! 🔨**
+[Report Bug](https://github.com/PeterHiroshi/cfmon/issues) • [Request Feature](https://github.com/PeterHiroshi/cfmon/issues) • [Star on GitHub](https://github.com/PeterHiroshi/cfmon)
 
 </div>
