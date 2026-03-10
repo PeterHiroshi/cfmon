@@ -69,6 +69,19 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Help overlay — highest priority
+		if m.showHelp {
+			switch {
+			case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == '?':
+				m.showHelp = false
+				return m, nil
+			case msg.Type == tea.KeyEsc:
+				m.showHelp = false
+				return m, nil
+			}
+			return m, nil
+		}
+
 		switch {
 		case msg.Type == tea.KeyCtrlC || (msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == 'q'):
 			return m, tea.Quit
@@ -76,6 +89,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == 'r':
 			m.loading = true
 			return m, fetchData(m.client, m.accountID)
+
+		case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == '?':
+			m.showHelp = true
+			return m, nil
 
 		case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == 'j',
 			msg.Type == tea.KeyDown:
@@ -188,6 +205,14 @@ func (m Model) View() string {
 
 	b.WriteString("\n")
 	b.WriteString(m.renderStatusBar())
+
+	if m.showHelp {
+		overlay := m.renderHelp()
+		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center,
+			overlay,
+			lipgloss.WithWhitespaceChars(" "),
+		)
+	}
 
 	return b.String()
 }
