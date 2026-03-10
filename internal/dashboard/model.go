@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/PeterHiroshi/cfmon/internal/api"
@@ -24,6 +25,12 @@ type Model struct {
 	scrollOffset    int
 	refreshInterval time.Duration
 	spinner         spinner.Model
+	showHelp        bool
+	filterMode      bool
+	filterText      string
+	filterInput     textinput.Model
+	selectedRow     int
+	showDetail      bool
 }
 
 // NewModel creates a new dashboard model.
@@ -35,6 +42,10 @@ func NewModel(client *api.Client, accountID string, refresh time.Duration) Model
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 
+	fi := textinput.New()
+	fi.Placeholder = "type to filter..."
+	fi.CharLimit = 50
+
 	return Model{
 		client:          client,
 		accountID:       accountID,
@@ -42,6 +53,7 @@ func NewModel(client *api.Client, accountID string, refresh time.Duration) Model
 		loading:         true,
 		refreshInterval: refresh,
 		spinner:         s,
+		filterInput:     fi,
 	}
 }
 

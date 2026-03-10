@@ -58,6 +58,24 @@ var (
 	emptyMessageStyle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241")).
 		Italic(true)
+
+	selectedRowStyle = lipgloss.NewStyle().
+		Background(lipgloss.Color("237")).
+		Foreground(lipgloss.Color("252"))
+
+	helpOverlayStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("62")).
+		Padding(1, 3).
+		Width(50)
+
+	helpTitleStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("205")).
+		MarginBottom(1)
+
+	filterActiveStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("226"))
 )
 
 func statusColor(status string) string {
