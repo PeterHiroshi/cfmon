@@ -19,3 +19,5 @@ Thumbs.db
 
 # GoReleaser
 dist/
+.forge-task/
+docs/superpowers/
