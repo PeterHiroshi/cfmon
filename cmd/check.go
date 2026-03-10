@@ -16,6 +16,8 @@ var (
 	cpuThreshold    float64
 	memoryThreshold float64
 	errorThreshold  float64
+	cpuLimit        int
+	memoryLimit     int
 )
 
 var checkCmd = &cobra.Command{
@@ -50,7 +52,9 @@ func init() {
 
 	checkCmd.Flags().Float64Var(&cpuThreshold, "cpu-threshold", 80, "CPU usage warning threshold (percent)")
 	checkCmd.Flags().Float64Var(&memoryThreshold, "memory-threshold", 85, "Memory usage warning threshold (percent)")
-	checkCmd.Flags().Float64Var(&errorThreshold, "error-threshold", 2, "Error rate warning threshold (percent)")
+	checkCmd.Flags().Float64Var(&errorThreshold, "error-threshold", 2.0, "Error rate warning threshold (percent)")
+	checkCmd.Flags().IntVar(&cpuLimit, "cpu-limit", 10000, "CPU limit in milliseconds")
+	checkCmd.Flags().IntVar(&memoryLimit, "memory-limit", 1024, "Memory limit in MB")
 }
 
 func runCheck(cmd *cobra.Command, args []string) error {
@@ -103,7 +107,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		ErrorRatePercent: errorThreshold,
 	}
 
-	result, err := monitor.RunCheck(client, accountID, th)
+	result, err := monitor.RunCheck(client, accountID, th, cpuLimit, memoryLimit)
 	if err != nil {
 		return fmt.Errorf("running check: %w", err)
 	}
@@ -123,7 +127,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	// Set exit code based on severity
-	switch result.Summary.MaxSeverity {
+	switch result.MaxSeverity() {
 	case "critical":
 		os.Exit(2)
 	case "warning":
@@ -139,21 +143,24 @@ func printCheckTable(result *monitor.CheckResult) {
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	}
 
+	maxSev := result.MaxSeverity()
 	sevColor := "green"
-	switch result.Summary.MaxSeverity {
+	switch maxSev {
 	case "warning":
 		sevColor = "yellow"
 	case "critical":
 		sevColor = "red"
 	}
 
+	totalAlerts := result.Summary.Warnings + result.Summary.Criticals
+
 	if !quiet {
-		fmt.Printf("\n%s %s\n", colorize("Status:", "yellow", true), colorize(result.Summary.MaxSeverity, sevColor, true))
+		fmt.Printf("\n%s %s\n", colorize("Status:", "yellow", true), colorize(maxSev, sevColor, true))
 		fmt.Printf("%s Workers: %d  Containers: %d  Alerts: %d\n\n",
 			colorize("Summary:", "yellow", true),
 			result.Summary.TotalWorkers,
 			result.Summary.TotalContainers,
-			result.Summary.TotalAlerts,
+			totalAlerts,
 		)
 	}
 
