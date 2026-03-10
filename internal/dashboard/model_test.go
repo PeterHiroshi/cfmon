@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/PeterHiroshi/cfmon/internal/api"
 )
@@ -434,5 +435,84 @@ func TestSelectedRowAutoScroll(t *testing.T) {
 	}
 	if updated.scrollOffset < 1 {
 		t.Errorf("scrollOffset should auto-adjust, got %d", updated.scrollOffset)
+	}
+}
+
+func TestFilterModeActivation(t *testing.T) {
+	m := Model{
+		width: 80, height: 24,
+		activeTab:   TabWorkers,
+		filterInput: textinput.New(),
+		data:        &DashboardData{Workers: make([]api.Worker, 5)},
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	updated := newModel.(Model)
+	if !updated.filterMode {
+		t.Error("pressing / on Workers tab should activate filter mode")
+	}
+}
+
+func TestFilterModeNotOnOverview(t *testing.T) {
+	m := Model{
+		width: 80, height: 24,
+		activeTab: TabOverview,
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	updated := newModel.(Model)
+	if updated.filterMode {
+		t.Error("pressing / on Overview tab should NOT activate filter mode")
+	}
+}
+
+func TestFilterModeEscCancels(t *testing.T) {
+	m := Model{
+		width: 80, height: 24,
+		activeTab:   TabWorkers,
+		filterMode:  true,
+		filterText:  "api",
+		filterInput: textinput.New(),
+		data:        &DashboardData{Workers: make([]api.Worker, 5)},
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	updated := newModel.(Model)
+	if updated.filterMode {
+		t.Error("Esc should exit filter mode")
+	}
+	if updated.filterText != "" {
+		t.Error("Esc should clear filter text")
+	}
+}
+
+func TestFilterModeEnterConfirms(t *testing.T) {
+	m := Model{
+		width: 80, height: 24,
+		activeTab:   TabWorkers,
+		filterMode:  true,
+		filterText:  "api",
+		filterInput: textinput.New(),
+		data:        &DashboardData{Workers: make([]api.Worker, 5)},
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated := newModel.(Model)
+	if updated.filterMode {
+		t.Error("Enter should exit filter mode (but keep filter)")
+	}
+	if updated.filterText != "api" {
+		t.Errorf("Enter should keep filter text, got %q", updated.filterText)
+	}
+}
+
+func TestFilterModeSuppressesTabSwitch(t *testing.T) {
+	m := Model{
+		width: 80, height: 24,
+		activeTab:   TabWorkers,
+		filterMode:  true,
+		filterInput: textinput.New(),
+		data:        &DashboardData{Workers: make([]api.Worker, 5)},
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'1'}})
+	updated := newModel.(Model)
+	if updated.activeTab != TabWorkers {
+		t.Error("tab switch should be suppressed in filter mode")
 	}
 }
