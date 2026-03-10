@@ -82,6 +82,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		// Detail view
+		if m.showDetail {
+			switch {
+			case msg.Type == tea.KeyEsc:
+				m.showDetail = false
+				return m, nil
+			case msg.Type == tea.KeyTab:
+				m.showDetail = false
+				m.activeTab = (m.activeTab + 1) % tabCount
+				m.scrollOffset = 0
+				m.selectedRow = 0
+				return m, nil
+			case msg.Type == tea.KeyShiftTab:
+				m.showDetail = false
+				m.activeTab = (m.activeTab - 1 + tabCount) % tabCount
+				m.scrollOffset = 0
+				m.selectedRow = 0
+				return m, nil
+			case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] >= '1' && msg.Runes[0] <= '3':
+				m.showDetail = false
+				m.activeTab = TabID(msg.Runes[0] - '1')
+				m.scrollOffset = 0
+				m.selectedRow = 0
+				return m, nil
+			case msg.Type == tea.KeyCtrlC || (msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == 'q'):
+				return m, tea.Quit
+			}
+			return m, nil
+		}
+
 		// Filter mode
 		if m.filterMode {
 			switch {
@@ -128,6 +158,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selectedRow = 0
 				m.scrollOffset = 0
 				return m, textinput.Blink
+			}
+			return m, nil
+
+		case msg.Type == tea.KeyEnter:
+			if m.activeTab != TabOverview && m.currentItemCount() > 0 {
+				m.showDetail = true
+			}
+			return m, nil
+
+		case msg.Type == tea.KeyEsc:
+			if m.filterText != "" {
+				m.filterText = ""
+				m.filterInput.Reset()
+				m.selectedRow = 0
+				m.scrollOffset = 0
 			}
 			return m, nil
 
@@ -234,9 +279,17 @@ func (m Model) View() string {
 		case TabOverview:
 			b.WriteString(m.renderOverview())
 		case TabWorkers:
-			b.WriteString(m.renderWorkers())
+			if m.showDetail {
+				b.WriteString(m.renderWorkerDetail())
+			} else {
+				b.WriteString(m.renderWorkers())
+			}
 		case TabContainers:
-			b.WriteString(m.renderContainers())
+			if m.showDetail {
+				b.WriteString(m.renderContainerDetail())
+			} else {
+				b.WriteString(m.renderContainers())
+			}
 		}
 	}
 
