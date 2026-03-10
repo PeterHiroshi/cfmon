@@ -337,3 +337,102 @@ func TestStatusBarShowsScrollHint(t *testing.T) {
 		t.Error("Containers tab should show j/k scroll hint")
 	}
 }
+
+func TestSelectedRowMovesWithJ(t *testing.T) {
+	m := Model{
+		width: 80, height: 24,
+		activeTab: TabWorkers,
+		data: &DashboardData{
+			Workers: make([]api.Worker, 10),
+		},
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	updated := newModel.(Model)
+	if updated.selectedRow != 1 {
+		t.Errorf("selectedRow after j = %d, want 1", updated.selectedRow)
+	}
+}
+
+func TestSelectedRowMovesWithK(t *testing.T) {
+	m := Model{
+		width: 80, height: 24,
+		activeTab:   TabWorkers,
+		selectedRow: 3,
+		data: &DashboardData{
+			Workers: make([]api.Worker, 10),
+		},
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+	updated := newModel.(Model)
+	if updated.selectedRow != 2 {
+		t.Errorf("selectedRow after k = %d, want 2", updated.selectedRow)
+	}
+}
+
+func TestSelectedRowBoundsLower(t *testing.T) {
+	m := Model{
+		width: 80, height: 24,
+		activeTab:   TabWorkers,
+		selectedRow: 0,
+		data: &DashboardData{
+			Workers: make([]api.Worker, 10),
+		},
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+	updated := newModel.(Model)
+	if updated.selectedRow != 0 {
+		t.Errorf("selectedRow should not go below 0, got %d", updated.selectedRow)
+	}
+}
+
+func TestSelectedRowBoundsUpper(t *testing.T) {
+	m := Model{
+		width: 80, height: 24,
+		activeTab:   TabWorkers,
+		selectedRow: 4,
+		data: &DashboardData{
+			Workers: make([]api.Worker, 5),
+		},
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	updated := newModel.(Model)
+	if updated.selectedRow != 4 {
+		t.Errorf("selectedRow should not exceed len-1, got %d", updated.selectedRow)
+	}
+}
+
+func TestSelectedRowResetsOnTabSwitch(t *testing.T) {
+	m := Model{
+		width: 80, height: 24,
+		activeTab:   TabWorkers,
+		selectedRow: 5,
+		data: &DashboardData{
+			Workers: make([]api.Worker, 10),
+		},
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'1'}})
+	updated := newModel.(Model)
+	if updated.selectedRow != 0 {
+		t.Errorf("selectedRow should reset on tab switch, got %d", updated.selectedRow)
+	}
+}
+
+func TestSelectedRowAutoScroll(t *testing.T) {
+	m := Model{
+		width: 80, height: 15,
+		activeTab:    TabWorkers,
+		selectedRow:  2,
+		scrollOffset: 0,
+		data: &DashboardData{
+			Workers: make([]api.Worker, 20),
+		},
+	}
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	updated := newModel.(Model)
+	if updated.selectedRow != 3 {
+		t.Errorf("selectedRow = %d, want 3", updated.selectedRow)
+	}
+	if updated.scrollOffset < 1 {
+		t.Errorf("scrollOffset should auto-adjust, got %d", updated.scrollOffset)
+	}
+}
