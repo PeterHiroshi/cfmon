@@ -95,6 +95,8 @@ cfmon config show
 
 #### 🩺 **System Health Checks**
 - **Doctor** command for comprehensive diagnostics
+- **Health** command for 0-100 point scoring
+- **Check** command for threshold-based alerts with exit codes
 - Verify API token validity
 - Check network connectivity
 - Test Cloudflare API access
@@ -292,6 +294,16 @@ List all workers
 #### `cfmon workers status <account-id> <worker-name>`
 Get detailed worker information
 
+#### `cfmon check [account-id]`
+One-shot health check with threshold-based alerts
+
+**Flags:**
+- `--cpu-threshold <percent>`: CPU usage warning threshold (default: 80)
+- `--memory-threshold <percent>`: Memory usage warning threshold (default: 85)
+- `--error-threshold <percent>`: Error rate warning threshold (default: 2)
+
+**Exit codes:** 0 = healthy, 1 = warnings, 2 = critical
+
 #### `cfmon completion <shell>`
 Generate shell completion script
 
@@ -445,13 +457,17 @@ cfmon/
 │   ├── root.go       # Root command
 │   ├── containers.go # Container commands
 │   ├── workers.go    # Worker commands
+│   ├── check.go      # Threshold-based health check
 │   ├── doctor.go     # Doctor command
 │   ├── config.go     # Config commands
 │   └── help.go       # Help command
 ├── internal/         # Internal packages
 │   ├── api/          # Cloudflare API client
 │   ├── config/       # Configuration management
+│   ├── monitor/      # Threshold-based alert evaluation
 │   └── output/       # Output formatting
+├── skill/            # OpenClaw skill files
+│   └── SKILL.md      # AI assistant skill definition
 ├── test/             # Test files
 │   └── integration/  # Integration tests
 ├── scripts/          # Installation scripts

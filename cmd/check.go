@@ -103,7 +103,11 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		ErrorRatePercent: errorThreshold,
 	}
 
-	result, err := monitor.RunCheck(client, accountID, th)
+	// Default resource limits for percentage calculations
+	const defaultCPULimitMS = 1000
+	const defaultMemoryLimitMB = 1024
+
+	result, err := monitor.RunCheck(client, accountID, th, defaultCPULimitMS, defaultMemoryLimitMB)
 	if err != nil {
 		return fmt.Errorf("running check: %w", err)
 	}
@@ -123,7 +127,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	// Set exit code based on severity
-	switch result.Summary.MaxSeverity {
+	switch result.MaxSeverity() {
 	case "critical":
 		os.Exit(2)
 	case "warning":
@@ -139,21 +143,24 @@ func printCheckTable(result *monitor.CheckResult) {
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	}
 
+	maxSev := result.MaxSeverity()
 	sevColor := "green"
-	switch result.Summary.MaxSeverity {
+	switch maxSev {
 	case "warning":
 		sevColor = "yellow"
 	case "critical":
 		sevColor = "red"
 	}
 
+	totalAlerts := result.Summary.Warnings + result.Summary.Criticals
+
 	if !quiet {
-		fmt.Printf("\n%s %s\n", colorize("Status:", "yellow", true), colorize(result.Summary.MaxSeverity, sevColor, true))
+		fmt.Printf("\n%s %s\n", colorize("Status:", "yellow", true), colorize(maxSev, sevColor, true))
 		fmt.Printf("%s Workers: %d  Containers: %d  Alerts: %d\n\n",
 			colorize("Summary:", "yellow", true),
 			result.Summary.TotalWorkers,
 			result.Summary.TotalContainers,
-			result.Summary.TotalAlerts,
+			totalAlerts,
 		)
 	}
 

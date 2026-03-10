@@ -326,9 +326,9 @@ func TestEvaluateContainers(t *testing.T) {
 		{
 			name: "mixed severities across containers",
 			containers: []api.Container{
-				{Name: "container1", CPUMS: 800, MemoryMB: 64},  // CPU warning
-				{Name: "container2", CPUMS: 500, MemoryMB: 109}, // Memory warning
-				{Name: "container3", CPUMS: 1000, MemoryMB: 126}, // Both critical
+				{Name: "container1", CPUMS: 850, MemoryMB: 64},   // CPU warning (85%)
+				{Name: "container2", CPUMS: 500, MemoryMB: 109},  // Memory warning (85.15%)
+				{Name: "container3", CPUMS: 1000, MemoryMB: 128}, // CPU critical (100%), memory critical (100%)
 			},
 			thresholds:     thresholds,
 			cpuLimitMS:     1000,
