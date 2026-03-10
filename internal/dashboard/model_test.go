@@ -517,6 +517,59 @@ func TestFilterModeSuppressesTabSwitch(t *testing.T) {
 	}
 }
 
+func TestStatusBarShowsFilterIndicator(t *testing.T) {
+	m := Model{
+		width: 120, height: 24,
+		activeTab:  TabWorkers,
+		filterText: "prod",
+		data: &DashboardData{
+			Workers: []api.Worker{{Name: "prod-api", Status: "active"}},
+		},
+	}
+	bar := m.renderStatusBar()
+	if !strings.Contains(bar, "filter: prod") {
+		t.Errorf("status bar should show filter indicator, got: %s", bar)
+	}
+}
+
+func TestStatusBarShowsHelpHint(t *testing.T) {
+	m := Model{width: 120, height: 24}
+	bar := m.renderStatusBar()
+	if !strings.Contains(bar, "?:help") {
+		t.Errorf("status bar should show ?:help hint, got: %s", bar)
+	}
+}
+
+func TestStatusBarShowsRowPosition(t *testing.T) {
+	m := Model{
+		width: 120, height: 24,
+		activeTab:   TabWorkers,
+		selectedRow: 2,
+		data: &DashboardData{
+			Workers: make([]api.Worker, 15),
+		},
+	}
+	bar := m.renderStatusBar()
+	if !strings.Contains(bar, "row 3/15") {
+		t.Errorf("status bar should show row position, got: %s", bar)
+	}
+}
+
+func TestStatusBarInDetailView(t *testing.T) {
+	m := Model{
+		width: 120, height: 24,
+		activeTab:  TabWorkers,
+		showDetail: true,
+		data: &DashboardData{
+			Workers: []api.Worker{{Name: "w1"}},
+		},
+	}
+	bar := m.renderStatusBar()
+	if !strings.Contains(bar, "Esc: back") {
+		t.Errorf("status bar in detail view should show 'Esc: back', got: %s", bar)
+	}
+}
+
 func TestMouseWheelDown(t *testing.T) {
 	m := Model{
 		width: 80, height: 24,

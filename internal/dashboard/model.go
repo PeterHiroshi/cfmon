@@ -384,14 +384,41 @@ func (m Model) renderOverview() string {
 }
 
 func (m Model) renderStatusBar() string {
-	left := "q: quit  r: refresh  Tab/1-3: switch tabs"
-	if m.activeTab != TabOverview {
-		left += "  j/k: scroll"
+	var parts []string
+
+	if m.showDetail {
+		parts = append(parts, "Esc: back to list")
+	} else if m.filterMode {
+		parts = append(parts, "Enter: confirm  Esc: cancel")
+	} else {
+		parts = append(parts, "q: quit  r: refresh  Tab/1-3: switch tabs")
+		if m.activeTab != TabOverview {
+			parts = append(parts, "j/k: scroll  /: filter  Enter: detail")
+		}
 	}
-	right := ""
+
+	left := strings.Join(parts, "  ")
+
+	var rightParts []string
+
+	if m.filterText != "" && !m.filterMode {
+		rightParts = append(rightParts, filterActiveStyle.Render("filter: "+m.filterText))
+	}
+
+	if m.activeTab != TabOverview && !m.showDetail {
+		count := m.currentItemCount()
+		if count > 0 {
+			rightParts = append(rightParts, fmt.Sprintf("row %d/%d", m.selectedRow+1, count))
+		}
+	}
+
+	rightParts = append(rightParts, "?:help")
+
 	if m.loading {
-		right = m.spinner.View() + " refreshing..."
+		rightParts = append(rightParts, m.spinner.View()+" refreshing...")
 	}
+
+	right := strings.Join(rightParts, "  ")
 
 	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 0 {
