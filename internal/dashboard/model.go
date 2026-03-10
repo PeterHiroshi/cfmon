@@ -284,6 +284,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case errMsg:
 		m.err = msg.err
 		m.loading = false
+		m.events = addEvent(m.events, DashboardEvent{
+			Time:     time.Now(),
+			Text:     fmt.Sprintf("ERROR: failed to fetch data: %v", msg.err),
+			Severity: "critical",
+		})
 		return m, tickCmd(m.refreshInterval)
 
 	case tickMsg:
@@ -367,6 +372,12 @@ func (m Model) renderTabs() string {
 	var tabs []string
 	for i := TabID(0); i < tabCount; i++ {
 		label := fmt.Sprintf(" %d %s ", i+1, i.String())
+
+		// Add badge to Alerts tab when not active and has alerts
+		if i == TabAlerts && i != m.activeTab && m.data != nil && len(m.data.Alerts) > 0 {
+			label = fmt.Sprintf(" %d %s %d ", i+1, i.String(), len(m.data.Alerts))
+		}
+
 		if i == m.activeTab {
 			tabs = append(tabs, activeTabStyle.Render(label))
 		} else {
@@ -414,7 +425,31 @@ func (m Model) renderOverview() string {
 			cardValueStyle.Render(fmt.Sprintf("%.1f%%", m.data.ErrorRate)),
 	)
 
-	b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, workerCard, containerCard, errorCard))
+	var alertWarnings, alertCriticals int
+	for _, a := range m.data.Alerts {
+		if a.Severity == "warning" {
+			alertWarnings++
+		} else if a.Severity == "critical" {
+			alertCriticals++
+		}
+	}
+
+	alertCardColor := lipgloss.Color("46") // green
+	alertValue := "None"
+	if alertCriticals > 0 {
+		alertCardColor = lipgloss.Color("196")
+		alertValue = fmt.Sprintf("%d warn  %d crit", alertWarnings, alertCriticals)
+	} else if alertWarnings > 0 {
+		alertCardColor = lipgloss.Color("226")
+		alertValue = fmt.Sprintf("%d warn", alertWarnings)
+	}
+
+	alertCard := cardStyle.Render(
+		cardTitleStyle.Render("Alerts") + "\n" +
+			lipgloss.NewStyle().Bold(true).Foreground(alertCardColor).Render(alertValue),
+	)
+
+	b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, workerCard, containerCard, errorCard, alertCard))
 
 	return b.String()
 }

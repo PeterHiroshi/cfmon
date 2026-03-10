@@ -706,6 +706,78 @@ func TestCurrentItemCountAlerts(t *testing.T) {
 	}
 }
 
+func TestOverviewShowsAlertsSummary(t *testing.T) {
+	m := Model{
+		width: 100, height: 24,
+		activeTab: TabOverview,
+		data: &DashboardData{
+			HealthScore:  85,
+			HealthStatus: "good",
+			Workers:      []api.Worker{{Name: "w1"}},
+			Containers:   []api.Container{{Name: "c1"}},
+			Alerts: []monitor.Alert{
+				{Severity: "warning"},
+				{Severity: "critical"},
+			},
+		},
+	}
+	result := m.renderOverview()
+	if !strings.Contains(result, "Alerts") {
+		t.Errorf("overview should contain alerts card, got: %s", result)
+	}
+}
+
+func TestOverviewAlertsCardNoAlerts(t *testing.T) {
+	m := Model{
+		width: 100, height: 24,
+		activeTab: TabOverview,
+		data: &DashboardData{
+			HealthScore: 85,
+			Workers:     []api.Worker{{Name: "w1"}},
+			Containers:  []api.Container{{Name: "c1"}},
+			Alerts:      []monitor.Alert{},
+		},
+	}
+	result := m.renderOverview()
+	if !strings.Contains(result, "Alerts") {
+		t.Errorf("overview should always show alerts card, got: %s", result)
+	}
+}
+
+func TestTabBadgeShowsAlertCount(t *testing.T) {
+	m := Model{
+		width: 100, height: 24,
+		activeTab: TabOverview, // not on alerts tab
+		data: &DashboardData{
+			Alerts: []monitor.Alert{
+				{Severity: "warning"},
+				{Severity: "critical"},
+				{Severity: "warning"},
+			},
+		},
+	}
+	tabs := m.renderTabs()
+	if !strings.Contains(tabs, "3") {
+		t.Errorf("tab badge should show alert count, got: %s", tabs)
+	}
+}
+
+func TestErrorEventGeneration(t *testing.T) {
+	m := NewModel(api.NewClient("t"), "acc", 30*time.Second)
+	newModel, _ := m.Update(errMsg{err: fmt.Errorf("network timeout")})
+	updated := newModel.(Model)
+	found := false
+	for _, e := range updated.events {
+		if strings.Contains(e.Text, "network timeout") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected error event for fetch failure")
+	}
+}
+
 func TestCurrentItemCountAlertsWithFilter(t *testing.T) {
 	m := Model{
 		activeTab:  TabAlerts,
