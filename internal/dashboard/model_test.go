@@ -79,8 +79,8 @@ func TestUpdateTabCycle(t *testing.T) {
 
 	newModel, _ = updated.Update(tea.KeyMsg{Type: tea.KeyShiftTab})
 	updated = newModel.(Model)
-	if updated.activeTab != TabContainers {
-		t.Errorf("after Shift+Tab wrap: activeTab = %d, want TabContainers", updated.activeTab)
+	if updated.activeTab != TabAlerts {
+		t.Errorf("after Shift+Tab wrap: activeTab = %d, want TabAlerts", updated.activeTab)
 	}
 }
 
