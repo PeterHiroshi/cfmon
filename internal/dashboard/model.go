@@ -161,7 +161,7 @@ func (m Model) View() string {
 		case TabWorkers:
 			b.WriteString(m.renderWorkers())
 		case TabContainers:
-			b.WriteString("Containers tab (Phase 2)")
+			b.WriteString(m.renderContainers())
 		}
 	}
 
