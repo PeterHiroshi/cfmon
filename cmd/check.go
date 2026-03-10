@@ -16,6 +16,8 @@ var (
 	cpuThreshold    float64
 	memoryThreshold float64
 	errorThreshold  float64
+	cpuLimit        int
+	memoryLimit     int
 )
 
 var checkCmd = &cobra.Command{
@@ -50,7 +52,9 @@ func init() {
 
 	checkCmd.Flags().Float64Var(&cpuThreshold, "cpu-threshold", 80, "CPU usage warning threshold (percent)")
 	checkCmd.Flags().Float64Var(&memoryThreshold, "memory-threshold", 85, "Memory usage warning threshold (percent)")
-	checkCmd.Flags().Float64Var(&errorThreshold, "error-threshold", 2, "Error rate warning threshold (percent)")
+	checkCmd.Flags().Float64Var(&errorThreshold, "error-threshold", 2.0, "Error rate warning threshold (percent)")
+	checkCmd.Flags().IntVar(&cpuLimit, "cpu-limit", 10000, "CPU limit in milliseconds")
+	checkCmd.Flags().IntVar(&memoryLimit, "memory-limit", 1024, "Memory limit in MB")
 }
 
 func runCheck(cmd *cobra.Command, args []string) error {
@@ -103,11 +107,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		ErrorRatePercent: errorThreshold,
 	}
 
-	// Default resource limits for percentage calculations
-	const defaultCPULimitMS = 1000
-	const defaultMemoryLimitMB = 1024
-
-	result, err := monitor.RunCheck(client, accountID, th, defaultCPULimitMS, defaultMemoryLimitMB)
+	result, err := monitor.RunCheck(client, accountID, th, cpuLimit, memoryLimit)
 	if err != nil {
 		return fmt.Errorf("running check: %w", err)
 	}
