@@ -200,25 +200,25 @@ func TestScrollDownUp(t *testing.T) {
 		Workers: make([]api.Worker, 20),
 	}
 
-	// Scroll down with j
+	// Scroll down with j moves selectedRow
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
 	updated := newModel.(Model)
-	if updated.scrollOffset != 1 {
-		t.Errorf("scrollOffset after j = %d, want 1", updated.scrollOffset)
+	if updated.selectedRow != 1 {
+		t.Errorf("selectedRow after j = %d, want 1", updated.selectedRow)
 	}
 
-	// Scroll up with k
+	// Scroll up with k moves selectedRow back
 	newModel, _ = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
 	updated = newModel.(Model)
-	if updated.scrollOffset != 0 {
-		t.Errorf("scrollOffset after k = %d, want 0", updated.scrollOffset)
+	if updated.selectedRow != 0 {
+		t.Errorf("selectedRow after k = %d, want 0", updated.selectedRow)
 	}
 
 	// Should not go below 0
 	newModel, _ = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
 	updated = newModel.(Model)
-	if updated.scrollOffset != 0 {
-		t.Errorf("scrollOffset should not go below 0, got %d", updated.scrollOffset)
+	if updated.selectedRow != 0 {
+		t.Errorf("selectedRow should not go below 0, got %d", updated.selectedRow)
 	}
 }
 
@@ -255,14 +255,14 @@ func TestScrollWithArrowKeys(t *testing.T) {
 
 	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
 	updated := newModel.(Model)
-	if updated.scrollOffset != 1 {
-		t.Errorf("scrollOffset after down = %d, want 1", updated.scrollOffset)
+	if updated.selectedRow != 1 {
+		t.Errorf("selectedRow after down = %d, want 1", updated.selectedRow)
 	}
 
 	newModel, _ = updated.Update(tea.KeyMsg{Type: tea.KeyUp})
 	updated = newModel.(Model)
-	if updated.scrollOffset != 0 {
-		t.Errorf("scrollOffset after up = %d, want 0", updated.scrollOffset)
+	if updated.selectedRow != 0 {
+		t.Errorf("selectedRow after up = %d, want 0", updated.selectedRow)
 	}
 }
 

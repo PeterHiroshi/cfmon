@@ -80,40 +80,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == 'j',
 			msg.Type == tea.KeyDown:
 			if m.activeTab != TabOverview {
-				m.scrollOffset++
+				m.selectedRow++
+				m.clampSelectedRow()
+				m.autoScrollToSelected()
 			}
 			return m, nil
 
 		case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == 'k',
 			msg.Type == tea.KeyUp:
-			if m.activeTab != TabOverview && m.scrollOffset > 0 {
-				m.scrollOffset--
+			if m.activeTab != TabOverview {
+				m.selectedRow--
+				m.clampSelectedRow()
+				m.autoScrollToSelected()
 			}
 			return m, nil
 
 		case msg.Type == tea.KeyTab:
 			m.activeTab = (m.activeTab + 1) % tabCount
 			m.scrollOffset = 0
+			m.selectedRow = 0
 			return m, nil
 
 		case msg.Type == tea.KeyShiftTab:
 			m.activeTab = (m.activeTab - 1 + tabCount) % tabCount
 			m.scrollOffset = 0
+			m.selectedRow = 0
 			return m, nil
 
 		case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == '1':
 			m.activeTab = TabOverview
 			m.scrollOffset = 0
+			m.selectedRow = 0
 			return m, nil
 
 		case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == '2':
 			m.activeTab = TabWorkers
 			m.scrollOffset = 0
+			m.selectedRow = 0
 			return m, nil
 
 		case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == '3':
 			m.activeTab = TabContainers
 			m.scrollOffset = 0
+			m.selectedRow = 0
 			return m, nil
 		}
 
@@ -255,4 +264,44 @@ func (m Model) renderStatusBar() string {
 	}
 
 	return statusBarStyle.Render(left + strings.Repeat(" ", gap) + right)
+}
+
+func (m Model) currentItemCount() int {
+	if m.data == nil {
+		return 0
+	}
+	switch m.activeTab {
+	case TabWorkers:
+		return len(m.data.Workers)
+	case TabContainers:
+		return len(m.data.Containers)
+	default:
+		return 0
+	}
+}
+
+func (m *Model) clampSelectedRow() {
+	max := m.currentItemCount() - 1
+	if max < 0 {
+		max = 0
+	}
+	if m.selectedRow > max {
+		m.selectedRow = max
+	}
+	if m.selectedRow < 0 {
+		m.selectedRow = 0
+	}
+}
+
+func (m *Model) autoScrollToSelected() {
+	visibleRows := m.height - 12
+	if visibleRows < 3 {
+		visibleRows = 3
+	}
+	if m.selectedRow >= m.scrollOffset+visibleRows {
+		m.scrollOffset = m.selectedRow - visibleRows + 1
+	}
+	if m.selectedRow < m.scrollOffset {
+		m.scrollOffset = m.selectedRow
+	}
 }
