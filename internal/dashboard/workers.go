@@ -12,7 +12,23 @@ func (m Model) renderWorkers() string {
 		return emptyMessageStyle.Render("No workers found")
 	}
 
+	workers := m.data.Workers
+	if m.filterText != "" {
+		workers = filterWorkers(workers, m.filterText)
+	}
+	if len(workers) == 0 {
+		return emptyMessageStyle.Render("No workers match filter")
+	}
+
 	var b strings.Builder
+
+	if m.filterMode {
+		b.WriteString("Filter: " + m.filterInput.View())
+		b.WriteString("\n\n")
+	} else if m.filterText != "" {
+		b.WriteString(filterActiveStyle.Render("filter: " + m.filterText))
+		b.WriteString("\n\n")
+	}
 
 	// Column widths
 	nameW, statusW, reqW, errW, rateW, cpuW := 20, 10, 12, 10, 12, 10
@@ -29,7 +45,7 @@ func (m Model) renderWorkers() string {
 		visibleRows = 3
 	}
 
-	maxScroll := len(m.data.Workers) - visibleRows
+	maxScroll := len(workers) - visibleRows
 	if maxScroll < 0 {
 		maxScroll = 0
 	}
@@ -39,20 +55,20 @@ func (m Model) renderWorkers() string {
 	}
 
 	end := offset + visibleRows
-	if end > len(m.data.Workers) {
-		end = len(m.data.Workers)
+	if end > len(workers) {
+		end = len(workers)
 	}
 
 	// Totals
 	var totalReq, totalErr, totalCPU int
-	for _, w := range m.data.Workers {
+	for _, w := range workers {
 		totalReq += w.Requests
 		totalErr += w.Errors
 		totalCPU += w.CPUMS
 	}
 
 	// Rows
-	for i, w := range m.data.Workers[offset:end] {
+	for i, w := range workers[offset:end] {
 		var errRate float64
 		if w.Requests > 0 {
 			errRate = float64(w.Errors) / float64(w.Requests) * 100
@@ -72,9 +88,9 @@ func (m Model) renderWorkers() string {
 	}
 
 	// Scroll indicator
-	if len(m.data.Workers) > visibleRows {
+	if len(workers) > visibleRows {
 		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			fmt.Sprintf("  showing %d-%d of %d (j/k to scroll)", offset+1, end, len(m.data.Workers))))
+			fmt.Sprintf("  showing %d-%d of %d (j/k to scroll)", offset+1, end, len(workers))))
 		b.WriteString("\n")
 	}
 

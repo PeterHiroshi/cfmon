@@ -14,12 +14,28 @@ func (m Model) renderContainers() string {
 		return emptyMessageStyle.Render("No containers found")
 	}
 
+	containers := m.data.Containers
+	if m.filterText != "" {
+		containers = filterContainers(containers, m.filterText)
+	}
+	if len(containers) == 0 {
+		return emptyMessageStyle.Render("No containers match filter")
+	}
+
 	var b strings.Builder
+
+	if m.filterMode {
+		b.WriteString("Filter: " + m.filterInput.View())
+		b.WriteString("\n\n")
+	} else if m.filterText != "" {
+		b.WriteString(filterActiveStyle.Render("filter: " + m.filterText))
+		b.WriteString("\n\n")
+	}
 
 	// Find max CPU and memory for bar scaling
 	maxCPU := 1000
 	maxMem := 128
-	for _, c := range m.data.Containers {
+	for _, c := range containers {
 		if c.CPUMS > maxCPU {
 			maxCPU = c.CPUMS
 		}
@@ -44,7 +60,7 @@ func (m Model) renderContainers() string {
 		visibleRows = 3
 	}
 
-	maxScroll := len(m.data.Containers) - visibleRows
+	maxScroll := len(containers) - visibleRows
 	if maxScroll < 0 {
 		maxScroll = 0
 	}
@@ -54,20 +70,20 @@ func (m Model) renderContainers() string {
 	}
 
 	end := offset + visibleRows
-	if end > len(m.data.Containers) {
-		end = len(m.data.Containers)
+	if end > len(containers) {
+		end = len(containers)
 	}
 
 	// Totals
 	var totalCPU, totalMem int
-	for _, c := range m.data.Containers {
+	for _, c := range containers {
 		totalCPU += c.CPUMS
 		totalMem += c.MemoryMB
 	}
-	avgMem := totalMem / len(m.data.Containers)
+	avgMem := totalMem / len(containers)
 
 	// Rows
-	for i, c := range m.data.Containers[offset:end] {
+	for i, c := range containers[offset:end] {
 		statusStyled := lipgloss.NewStyle().Foreground(lipgloss.Color(statusColor(c.Status))).Render(fmt.Sprintf("%-*s", statusW, c.Status))
 		cpuBar := renderBar(c.CPUMS, maxCPU, defaultBarWidth)
 		memBar := renderBar(c.MemoryMB, maxMem, defaultBarWidth)
@@ -83,9 +99,9 @@ func (m Model) renderContainers() string {
 	}
 
 	// Scroll indicator
-	if len(m.data.Containers) > visibleRows {
+	if len(containers) > visibleRows {
 		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			fmt.Sprintf("  showing %d-%d of %d (j/k to scroll)", offset+1, end, len(m.data.Containers))))
+			fmt.Sprintf("  showing %d-%d of %d (j/k to scroll)", offset+1, end, len(containers))))
 		b.WriteString("\n")
 	}
 

@@ -82,6 +82,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		// Filter mode
+		if m.filterMode {
+			switch {
+			case msg.Type == tea.KeyEsc:
+				m.filterMode = false
+				m.filterText = ""
+				m.filterInput.Reset()
+				m.selectedRow = 0
+				m.scrollOffset = 0
+				return m, nil
+			case msg.Type == tea.KeyEnter:
+				m.filterMode = false
+				m.selectedRow = 0
+				m.scrollOffset = 0
+				return m, nil
+			default:
+				var cmd tea.Cmd
+				m.filterInput, cmd = m.filterInput.Update(msg)
+				m.filterText = m.filterInput.Value()
+				m.selectedRow = 0
+				m.scrollOffset = 0
+				return m, cmd
+			}
+		}
+
 		switch {
 		case msg.Type == tea.KeyCtrlC || (msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == 'q'):
 			return m, tea.Quit
@@ -92,6 +117,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == '?':
 			m.showHelp = true
+			return m, nil
+
+		case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == '/':
+			if m.activeTab != TabOverview {
+				m.filterMode = true
+				m.filterInput.Reset()
+				m.filterInput.Focus()
+				m.filterText = ""
+				m.selectedRow = 0
+				m.scrollOffset = 0
+				return m, textinput.Blink
+			}
 			return m, nil
 
 		case msg.Type == tea.KeyRunes && len(msg.Runes) == 1 && msg.Runes[0] == 'j',
@@ -297,8 +334,14 @@ func (m Model) currentItemCount() int {
 	}
 	switch m.activeTab {
 	case TabWorkers:
+		if m.filterText != "" {
+			return len(filterWorkers(m.data.Workers, m.filterText))
+		}
 		return len(m.data.Workers)
 	case TabContainers:
+		if m.filterText != "" {
+			return len(filterContainers(m.data.Containers, m.filterText))
+		}
 		return len(m.data.Containers)
 	default:
 		return 0
