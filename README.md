@@ -24,6 +24,7 @@
 - [Features](#-features)
 - [Installation](#-installation)
 - [Usage](#-usage)
+- [Dashboard Guide](#-dashboard-guide)
 - [Command Reference](#-command-reference)
 - [Examples](#-examples)
 - [Configuration](#️-configuration)
@@ -45,11 +46,14 @@ cfmon login YOUR_API_TOKEN
 # Check system health
 cfmon doctor
 
+# Launch interactive dashboard
+cfmon dashboard YOUR_ACCOUNT_ID
+
 # List containers with filtering and sorting
 cfmon containers list YOUR_ACCOUNT_ID --filter "prod" --sort cpu --limit 10
 
-# Get detailed worker status
-cfmon workers status YOUR_ACCOUNT_ID worker-name
+# One-shot health check with threshold alerts
+cfmon check YOUR_ACCOUNT_ID --cpu-threshold 70
 
 # View configuration
 cfmon config show
@@ -59,7 +63,17 @@ cfmon config show
 
 ## 🎉 What's New
 
-### Version 0.2.0 (Unreleased)
+### Version 0.3.0
+
+- **📺 Interactive TUI Dashboard** — Real-time terminal UI with 4 tabs (Overview, Workers, Containers, Alerts)
+  - Health gauge with color-coded scoring
+  - Workers/Containers tables with live metrics, ASCII resource bars
+  - Alerts tab with severity-based threshold monitoring and event log
+  - Keyboard navigation (j/k, Tab, 1-4), search/filter (`/`), detail view (Enter)
+  - Mouse scroll support, help overlay (`?`)
+  - Auto-refresh with configurable interval (`--refresh`)
+
+### Version 0.2.0
 
 - **🩺 Doctor Command**: Comprehensive system health checks
 - **🎯 Advanced Filtering**: Filter resources by name with `--filter`
@@ -78,6 +92,18 @@ cfmon config show
 ## ✨ Features
 
 ### Core Features
+
+#### 📺 **Interactive TUI Dashboard** ⭐ NEW
+- **Real-time monitoring** with auto-refresh (configurable interval)
+- **4 tabs**: Overview, Workers, Containers, Alerts
+- **Overview tab**: Health gauge (0–100), resource summaries, alert counts
+- **Workers tab**: Scrollable table with CPU, requests, errors, success rate
+- **Containers tab**: Scrollable table with CPU/memory ASCII bars, status indicators
+- **Alerts tab**: Threshold-based alerts with severity levels, event timeline
+- **Keyboard-driven**: j/k navigation, Tab switching, `/` filter, Enter for detail, `?` for help
+- **Mouse support**: Scroll wheel for table navigation
+- **Detail view**: Press Enter on any row for expanded resource information
+- Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea) + [Lip Gloss](https://github.com/charmbracelet/lipgloss)
 
 #### 📦 **Container Management**
 - **List** all containers with resource metrics
@@ -236,6 +262,108 @@ cfmon containers list <account-id> --token <other-token>
 
 ---
 
+## 📺 Dashboard Guide
+
+The interactive TUI dashboard provides a unified real-time view of your entire Cloudflare account. It is the primary way to monitor resources at a glance.
+
+### Launching the Dashboard
+
+```bash
+# With explicit account ID
+cfmon dashboard <account-id>
+
+# Using default account (set via cfmon accounts set-default)
+cfmon dashboard
+
+# Custom refresh interval (default 30s, minimum 5s)
+cfmon dashboard <account-id> --refresh 10s
+```
+
+### Dashboard Tabs
+
+#### Tab 1 — Overview
+
+The landing tab shows a high-level health summary:
+
+| Element | Description |
+|---------|-------------|
+| **Health Gauge** | ASCII progress bar with 0–100 score. Green ≥75, yellow ≥50, red <50 |
+| **Workers Summary** | Total workers count, aggregate CPU/request/error metrics |
+| **Containers Summary** | Total containers count, aggregate CPU/memory usage |
+| **Alert Count** | Number of active warnings and critical alerts |
+
+#### Tab 2 — Workers
+
+Scrollable table of all Workers with columns:
+
+| Column | Description |
+|--------|-------------|
+| Name | Worker script name |
+| Status | Running status with color indicator |
+| CPU (ms) | CPU time in milliseconds |
+| Requests | Total request count |
+| Errors | Error count |
+| Success Rate | Percentage with color coding (green ≥99%, yellow ≥95%, red <95%) |
+
+#### Tab 3 — Containers
+
+Scrollable table of all Containers with columns:
+
+| Column | Description |
+|--------|-------------|
+| Name / ID | Container identifier |
+| Status | Running status with color indicator |
+| CPU | Usage with ASCII bar visualization |
+| Memory | Usage with ASCII bar visualization |
+| Requests | Total request count |
+
+#### Tab 4 — Alerts
+
+Threshold-based alert monitoring:
+
+- Alerts are evaluated against configurable thresholds (CPU, memory, error rate)
+- Severity levels: **OK** (green), **Warning** (yellow), **Critical** (red)
+- **Event log**: Timeline of alert state changes (new alerts, resolved alerts)
+- Filter alerts by resource name with `/`
+- Tab badge shows alert count when alerts are active
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Tab` / `Shift-Tab` | Switch between tabs |
+| `1` `2` `3` `4` | Jump directly to a tab |
+| `j` / `↓` | Move cursor down / scroll down |
+| `k` / `↑` | Move cursor up / scroll up |
+| `Enter` | Open detail view for selected row |
+| `Esc` | Close detail / dismiss filter / exit |
+| `/` | Enter filter mode (Workers, Containers, Alerts tabs) |
+| `r` | Force refresh data |
+| `?` | Toggle help overlay |
+| `q` | Quit dashboard |
+| Mouse wheel | Scroll tables up/down |
+
+### Filter Mode
+
+Press `/` on any list tab to activate filter mode:
+
+1. Type your search query — the table filters in real-time
+2. Press `Enter` to confirm the filter and return to normal navigation
+3. Press `Esc` to cancel and clear the filter
+4. The status bar shows the active filter when set
+
+Filter matches resource names as case-insensitive substrings.
+
+### Detail View
+
+Press `Enter` on a selected row in Workers or Containers tab:
+
+- Shows expanded information for the selected resource
+- Displays all available metrics and metadata
+- Press `Esc` to return to the table view
+
+---
+
 ## 📚 Command Reference
 
 ### Global Flags
@@ -252,6 +380,14 @@ cfmon containers list <account-id> --token <other-token>
 | `--version` | | Show version | |
 
 ### Commands
+
+#### `cfmon dashboard [account-id]`
+Launch interactive TUI dashboard
+
+**Flags:**
+- `--refresh <duration>`: Auto-refresh interval (default: 30s, min: 5s)
+
+**Controls:** Tab/1-4 to switch tabs, j/k to navigate, `/` to filter, Enter for detail, `?` for help, `q` to quit.
 
 #### `cfmon help [command]`
 Display detailed help with examples
@@ -316,6 +452,20 @@ Generate shell completion script
 ---
 
 ## 💡 Examples
+
+### Launch the Dashboard
+
+```bash
+# Quick start — interactive monitoring
+cfmon dashboard <account-id>
+
+# Faster updates for incident response
+cfmon dashboard <account-id> --refresh 5s
+
+# Using default account
+cfmon accounts set-default <account-id>
+cfmon dashboard
+```
 
 ### Monitor High CPU Usage
 
@@ -455,6 +605,7 @@ open coverage.html
 cfmon/
 ├── cmd/              # CLI commands
 │   ├── root.go       # Root command
+│   ├── dashboard.go  # Interactive TUI dashboard
 │   ├── containers.go # Container commands
 │   ├── workers.go    # Worker commands
 │   ├── check.go      # Threshold-based health check
@@ -464,6 +615,17 @@ cfmon/
 ├── internal/         # Internal packages
 │   ├── api/          # Cloudflare API client
 │   ├── config/       # Configuration management
+│   ├── dashboard/    # TUI dashboard (Bubble Tea)
+│   │   ├── model.go      # Main model + Update loop
+│   │   ├── types.go      # Tab IDs, data types, events
+│   │   ├── fetcher.go    # Async data fetching
+│   │   ├── workers.go    # Workers tab rendering
+│   │   ├── containers.go # Containers tab rendering
+│   │   ├── alerts.go     # Alerts tab + event log
+│   │   ├── gauge.go      # ASCII health gauge
+│   │   ├── filter.go     # Filter logic
+│   │   ├── styles.go     # Lip Gloss styles
+│   │   └── help.go       # Help overlay
 │   ├── monitor/      # Threshold-based alert evaluation
 │   └── output/       # Output formatting
 ├── skill/            # OpenClaw skill files
